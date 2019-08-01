@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/object-views http://axelor.com/xml/ns/object-views/object-views_5.0.xsd">
+
+	<menuitem name="admin-root-batch-redmine-invoicing" parent="admin-root-batch"
+		title="Redmine invoicing batches" action="admin.root.batch.redmine.invoicing"
+		if="__config__.app.isApp('redmine-invoicing')" />
+
+	<action-view name="admin.root.batch.redmine.invoicing"
+		title="Redmine invoicing batches" model="com.axelor.apps.redmineinvoicing.db.RedmineInvoicingBatch">
+		<view type="grid" name="redmine-invoicing-batch-grid" />
+		<view type="form" name="redmine-invoicing-batch-form" />
+	</action-view>
+
+</object-views>

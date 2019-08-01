@@ -1,0 +1,28 @@
+apply plugin: "com.axelor.app-module"
+
+apply {
+	version = "5.0.0-SNAPSHOT"
+}
+
+spotless { 
+	java {  
+		googleJavaFormat()
+	} 
+}
+
+axelor {
+	title "Axelor :: Redmine Invoicing"
+	description "Axelor Redmine Invoicing Module"
+
+	removable true
+}
+
+dependencies {
+	compile project(":modules:axelor-redmine")
+
+	compile 'com.taskadapter:redmine-java-api:4.0.0.preview.1'
+
+	compile 'com.squareup.okhttp3:okhttp:3.14.1'
+
+	compile 'net.java:textile-j:2.2'
+}

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/object-views http://axelor.com/xml/ns/object-views/object-views_5.0.xsd">
+
+	<grid name="redmine-invoicing-batch-grid" title="Redmine invoicing batches"
+		model="com.axelor.apps.redmineinvoicing.db.RedmineInvoicingBatch">
+		<field name="code" x-bind="{{code|unaccent|uppercase}}" />
+		<field name="company" form-view="company-form" grid-view="company-grid" />
+		<field name="createdOn" />
+		<field name="createdBy" form-view="user-form" grid-view="user-grid" />
+	</grid>
+
+	<form onNew="action-redmine-invoicing-batch-record-on-new" name="redmine-invoicing-batch-form"
+		title="Redmine Invoicing Batch" model="com.axelor.apps.redmineinvoicing.db.RedmineInvoicingBatch"
+		width="large">
+		<panel name="main">
+			<field name="code" x-bind="{{code|unaccent|uppercase}}"
+				onChange="action-base-batch-condition-check-unique-code" />
+			<field name="company" canEdit="false" widget="SuggestBox"
+				form-view="company-form" grid-view="company-grid" />
+		</panel>
+		<panel-tabs>
+			<panel name="actionPanel" title="Actions">
+				<panel colSpan="3">
+					<button name="importBtn" title="Import"
+						onClick="save,action-redmine-invoicing-batch-method-action-import-all"
+						colSpan="12" />
+				</panel>
+			</panel>
+			<panel name="information" title="Information">
+				<field name="createdOn" title="Created on" />
+				<field name="createdBy" title="Created by" form-view="user-form"
+					grid-view="user-grid" />
+				<field name="description" colSpan="12" />
+				<panel-related field="batchList" colSpan="12"
+					form-view="redmine-invoicing-base-batch-form" grid-view="batch-grid"
+					readonly="true" />
+			</panel>
+		</panel-tabs>
+	</form>
+
+	<action-record name="action-redmine-invoicing-batch-record-on-new"
+		model="com.axelor.apps.redmineinvoicing.db.RedmineInvoicingBatch">
+		<field name="createdOn" expr="eval:__config__.app.getTodayDate()" />
+		<field name="createdBy" expr="eval:__user__" />
+		<field name="company" expr="eval:__user__.activeCompany" if="__user__.activeCompany != null" />
+		<field name="company" expr="eval:__repo__(Company).all().fetchOne()"
+			if="__user__.activeCompany == null &amp;&amp; __repo__(Company).all().fetch().size == 1" />
+	</action-record>
+
+	<action-method
+		name="action-redmine-invoicing-batch-method-action-import-all">
+		<call
+			class="com.axelor.apps.redmineinvoicing.web.RedmineInvoicingBatchController"
+			method="actionImportAll" />
+	</action-method>
+
+</object-views>

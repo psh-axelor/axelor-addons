@@ -8,8 +8,7 @@
 	<entity name="TeamTask">
 
 		<integer name="redmineId" title="Redmine Id" />
-		<many-to-many name="osbatchSet" ref="com.axelor.apps.base.db.Batch" />
-		<many-to-many name="redminebatchSet" ref="com.axelor.apps.base.db.Batch" />
+		<many-to-many name="batchSet" ref="com.axelor.apps.base.db.Batch" />
 		<string name="fixedVersion" title="Fixed version" />
 		<boolean name="isTaskRefused" title="Task refused" />
 

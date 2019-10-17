@@ -25,11 +25,11 @@
 		<panel-tabs>
 			<panel name="actionPanel" title="Actions">
 				<panel colSpan="3">
-					<button name="redmineSyncProjectsBtn" title="Redmine Sync Projects"
-						onClick="save,action-redmine-batch-method-sync-projects" colSpan="12"
-						hidden="true" showIf="redmineActionSelect == 0" />
-					<button name="redmineSyncIssuesBtn" title="Redmine Sync Issues"
-						onClick="save,action-redmine-batch-method-sync-issues" colSpan="12"
+					<button name="redmineImportProjectsBtn" title="Redmine Import Projects"
+						onClick="save,action-redmine-batch-method-import-projects"
+						colSpan="12" hidden="true" showIf="redmineActionSelect == 0" />
+					<button name="redmineImportIssuesBtn" title="Redmine Import Issues"
+						onClick="save,action-redmine-batch-method-import-issues" colSpan="12"
 						hidden="true" showIf="redmineActionSelect == 1" />
 				</panel>
 			</panel>
@@ -58,14 +58,14 @@
 
 	<!-- ACTION METHOD -->
 
-	<action-method name="action-redmine-batch-method-sync-projects">
+	<action-method name="action-redmine-batch-method-import-projects">
 		<call class="com.axelor.apps.redmine.web.RedmineBatchController"
-			method="redmineSyncProjects" />
+			method="redmineImportProjects" />
 	</action-method>
 
-	<action-method name="action-redmine-batch-method-sync-issues">
+	<action-method name="action-redmine-batch-method-import-issues">
 		<call class="com.axelor.apps.redmine.web.RedmineBatchController"
-			method="redmineSyncIssues" />
+			method="redmineImportIssues" />
 	</action-method>
 
 </object-views>

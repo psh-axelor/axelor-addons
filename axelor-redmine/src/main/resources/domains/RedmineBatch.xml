@@ -18,8 +18,8 @@
 
 		<extra-code>
 			<![CDATA[
-				public static final int ACTION_SELECT_SYNC_PROJECT = 0;
-				public static final int ACTION_SELECT_SYNC_ISSUE = 1;
+				public static final int ACTION_SELECT_IMPORT_PROJECT = 0;
+				public static final int ACTION_SELECT_IMPORT_ISSUE = 1;
 			]]>
 		</extra-code>
 

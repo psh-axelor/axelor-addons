@@ -46,10 +46,9 @@ public class RedmineErrorLogService {
 
   public static final String HEADER_COL1 = "Object";
   public static final String HEADER_COL2 = "Import/Export";
-  public static final String HEADER_COL3 = "ABS Ref. Id";
-  public static final String HEADER_COL4 = "ABS Field";
-  public static final String HEADER_COL5 = "Redmine Field";
-  public static final String HEADER_COL6 = "Error";
+  public static final String HEADER_COL3 = "OS Ref.";
+  public static final String HEADER_COL4 = "Redmine Ref.";
+  public static final String HEADER_COL5 = "Error";
 
   private File excelFile;
 
@@ -61,10 +60,7 @@ public class RedmineErrorLogService {
     XSSFSheet sheet = workbook.createSheet(EXCEL_SHEET_NAME);
     Map<String, Object[]> errorData = new TreeMap<String, Object[]>();
     errorData.put(
-        "1",
-        new Object[] {
-          HEADER_COL1, HEADER_COL2, HEADER_COL3, HEADER_COL4, HEADER_COL5, HEADER_COL6
-        });
+        "1", new Object[] {HEADER_COL1, HEADER_COL2, HEADER_COL3, HEADER_COL4, HEADER_COL5});
 
     int i = 2;
     for (Object[] object : errorObjList) {

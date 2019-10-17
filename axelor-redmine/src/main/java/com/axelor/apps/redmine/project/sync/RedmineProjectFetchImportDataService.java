@@ -15,17 +15,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.sync.process;
+package com.axelor.apps.redmine.project.sync;
 
-import com.axelor.apps.base.db.Batch;
+import com.axelor.exception.service.TraceBackService;
+import com.taskadapter.redmineapi.RedmineException;
 import com.taskadapter.redmineapi.RedmineManager;
-import java.util.function.Consumer;
+import com.taskadapter.redmineapi.bean.Project;
+import java.util.List;
 
-public interface RedmineSyncProcessService {
+public class RedmineProjectFetchImportDataService {
 
-  void redmineSyncProcess(
-      Batch batch,
-      RedmineManager redmineManager,
-      Consumer<Object> onSuccess,
-      Consumer<Throwable> onError);
+  public List<Project> fetchImportData(RedmineManager redmineManager) {
+
+    List<Project> importProjectList = null;
+
+    try {
+      importProjectList = redmineManager.getProjectManager().getProjects();
+    } catch (RedmineException e) {
+      TraceBackService.trace(e);
+    }
+
+    return importProjectList;
+  }
 }

@@ -44,19 +44,9 @@
 				canSelect="false" />
 			<button name="createdTimesheetLinesInOsBtn" title="Created timesheetlines in OS"
 				colSpan="4" onClick="action-batch-method-open-created-timesheetlines-in-os" />
-
-			<field name="createdTrackersInOs" colSpan="12" canNew="false"
-				canSelect="false" />
-			<button name="createdTrackersInOsBtn" title="Created trackers in OS"
-				colSpan="4" onClick="action-batch-method-open-created-trackers-in-os" />
 		</panel>
 
 	</form>
-
-	<action-method name="action-batch-method-open-created-trackers-in-os">
-		<call class="com.axelor.apps.redmine.web.RedmineBatchController"
-			method="createdTrackersInOs" />
-	</action-method>
 
 	<action-method name="action-batch-method-open-created-projects-in-os">
 		<call class="com.axelor.apps.redmine.web.RedmineBatchController"

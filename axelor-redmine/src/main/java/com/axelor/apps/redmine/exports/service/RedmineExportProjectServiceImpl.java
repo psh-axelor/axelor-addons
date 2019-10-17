@@ -19,102 +19,96 @@ package com.axelor.apps.redmine.exports.service;
 
 import com.axelor.apps.base.db.Batch;
 import com.axelor.apps.base.db.Partner;
+import com.axelor.apps.base.db.repo.PartnerRepository;
+import com.axelor.apps.base.db.repo.ProductRepository;
 import com.axelor.apps.project.db.Project;
+import com.axelor.apps.project.db.ProjectCategory;
+import com.axelor.apps.project.db.repo.ProjectCategoryRepository;
 import com.axelor.apps.project.db.repo.ProjectRepository;
-import com.axelor.apps.redmine.db.OpenSuitRedmineSync;
-import com.axelor.apps.redmine.db.repo.OpenSuitRedmineSyncRepository;
 import com.axelor.apps.redmine.message.IMessage;
+import com.axelor.apps.redmine.sync.service.RedmineSyncService;
 import com.axelor.auth.db.User;
-import com.axelor.db.mapper.Mapper;
+import com.axelor.auth.db.repo.UserRepository;
 import com.axelor.exception.service.TraceBackService;
 import com.axelor.i18n.I18n;
-import com.axelor.meta.db.repo.MetaModelRepository;
+import com.axelor.team.db.repo.TeamTaskRepository;
 import com.google.inject.Inject;
 import com.google.inject.persist.Transactional;
+import com.taskadapter.redmineapi.IssueManager;
+import com.taskadapter.redmineapi.ProjectManager;
 import com.taskadapter.redmineapi.RedmineException;
-import com.taskadapter.redmineapi.RedmineManager;
+import com.taskadapter.redmineapi.UserManager;
 import com.taskadapter.redmineapi.bean.Membership;
 import com.taskadapter.redmineapi.bean.Role;
 import com.taskadapter.redmineapi.bean.Tracker;
+import com.taskadapter.redmineapi.internal.Transport;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RedmineExportProjectServiceImpl extends RedmineExportService
+public class RedmineExportProjectServiceImpl extends RedmineSyncService
     implements RedmineExportProjectService {
-
-  protected OpenSuitRedmineSyncRepository openSuiteRedmineSyncRepo;
-  protected ProjectRepository projectRepo;
-  protected RedmineDynamicExportService redmineDynamicExportService;
-  protected MetaModelRepository metaModelRepository;
 
   @Inject
   public RedmineExportProjectServiceImpl(
-      OpenSuitRedmineSyncRepository openSuiteRedmineSyncRepo,
+      UserRepository userRepo,
       ProjectRepository projectRepo,
-      RedmineDynamicExportService redmineDynamicExportService,
-      MetaModelRepository metaModelRepository) {
-
-    this.openSuiteRedmineSyncRepo = openSuiteRedmineSyncRepo;
-    this.projectRepo = projectRepo;
-    this.redmineDynamicExportService = redmineDynamicExportService;
-    this.metaModelRepository = metaModelRepository;
+      ProductRepository productRepo,
+      TeamTaskRepository teamTaskRepo,
+      ProjectCategoryRepository projectCategoryRepo,
+      PartnerRepository partnerRepo) {
+    super(userRepo, projectRepo, productRepo, teamTaskRepo, projectCategoryRepo, partnerRepo);
   }
 
   Logger LOG = LoggerFactory.getLogger(getClass());
-  private LocalDateTime lastBatchUpdatedOn;
+  protected List<Role> roles;
 
   @Override
+  @SuppressWarnings("unchecked")
   public void exportProject(
-      Batch batch,
-      LocalDateTime lastBatchUpdatedOn,
-      RedmineManager redmineManager,
       List<Project> projectList,
-      Consumer<Object> onSuccess,
-      Consumer<Throwable> onError,
-      List<Object[]> errorObjList) {
+      HashMap<String, Object> paramsMap,
+      HashMap<String, String> exportFieldMap) {
 
     if (projectList != null && !projectList.isEmpty()) {
-      OpenSuitRedmineSync openSuiteRedmineSyncProject =
-          openSuiteRedmineSyncRepo.findBySyncTypeSelect(
-              OpenSuitRedmineSyncRepository.SYNC_TYPE_PROJECT);
+      this.onError = (Consumer<Throwable>) paramsMap.get("onError");
+      this.onSuccess = (Consumer<Object>) paramsMap.get("onSuccess");
+      this.batch = (Batch) paramsMap.get("batch");
+      this.redmineIssueManager = (IssueManager) paramsMap.get("redmineIssueManager");
+      this.redmineUserManager = (UserManager) paramsMap.get("redmineUserManager");
+      this.redmineProjectManager = (ProjectManager) paramsMap.get("redmineProjectManager");
+      this.redmineTransport = (Transport) paramsMap.get("redmineTransport");
+      this.errorObjList = (List<Object[]>) paramsMap.get("errorObjList");
+      this.lastBatchUpdatedOn = (LocalDateTime) paramsMap.get("lastBatchUpdatedOn");
+      this.fieldMap = exportFieldMap;
 
-      this.errorObjList = errorObjList;
-      this.dynamicFieldsSyncList = openSuiteRedmineSyncProject.getDynamicFieldsSyncList();
+      try {
+        this.roles = redmineUserManager.getRoles();
+      } catch (RedmineException e) {
+        TraceBackService.trace(e, "", batch.getId());
+      }
 
-      if (validateDynamicFieldsSyncList(
-          dynamicFieldsSyncList,
-          METAMODEL_PROJECT,
-          Mapper.toMap(new Project()),
-          Mapper.toMap(new com.taskadapter.redmineapi.bean.Project(null)))) {
+      projectList.sort(
+          new Comparator<Project>() {
+            @Override
+            public int compare(Project arg0, Project arg1) {
+              if (arg1.getParentProject() == null) {
+                return 0;
+              }
+              return -1;
+            }
+          });
 
-        this.redmineManager = redmineManager;
-        this.batch = batch;
-        this.onError = onError;
-        this.onSuccess = onSuccess;
-        this.redmineProjectManager = redmineManager.getProjectManager();
-        this.redmineUserManager = redmineManager.getUserManager();
-        this.metaModel = metaModelRepository.findByName(METAMODEL_PROJECT);
-        this.lastBatchUpdatedOn = lastBatchUpdatedOn;
-
-        String syncTypeSelect = openSuiteRedmineSyncProject.getOpenSuiteToRedmineSyncSelect();
-
-        for (Project project : projectList) {
-          createRedmineProject(project, syncTypeSelect);
-        }
-
-        // Export project wikis
-        // exportProjectWikis();
+      for (Project project : projectList) {
+        createRedmineProject(project);
       }
     }
 
@@ -125,34 +119,20 @@ public class RedmineExportProjectServiceImpl extends RedmineExportService
     success = fail = 0;
   }
 
-  public void createRedmineProject(Project project, String syncTypeSelect) {
+  public void createRedmineProject(Project project) {
 
     try {
       com.taskadapter.redmineapi.bean.Project redmineProject = null;
+      Integer redmineId = project.getRedmineId();
 
-      if (project.getRedmineId() == null || project.getRedmineId().equals(0)) {
-        redmineProject = getRedmineProjectByKey(project.getCode());
-
-        if (redmineProject == null) {
-          redmineProject =
-              new com.taskadapter.redmineapi.bean.Project(redmineManager.getTransport());
-        }
-      } else {
-        redmineProject = redmineProjectManager.getProjectById(project.getRedmineId());
+      if (redmineId != null) {
+        redmineProject = redmineProjectManager.getProjectById(redmineId);
       }
 
-      // Sync type - On create
-      if (syncTypeSelect.equals(OpenSuitRedmineSyncRepository.SYNC_ON_CREATE)
-          && (project.getRedmineId() != null && !project.getRedmineId().equals(0))) {
-        return;
-      }
-
-      // Sync type - On update
-      if (syncTypeSelect.equals(OpenSuitRedmineSyncRepository.SYNC_ON_UPDATE)
-          && redmineProject.getUpdatedOn() != null
-          && lastBatchUpdatedOn != null) {
-
-        // If updates are made on both sides and redmine side is latest updated then abort export
+      if (redmineProject == null) {
+        redmineProject = new com.taskadapter.redmineapi.bean.Project(redmineTransport);
+      } else if (lastBatchUpdatedOn != null) {
+        LocalDateTime osUpdatedOn = project.getUpdatedOn();
         LocalDateTime redmineUpdatedOn =
             redmineProject
                 .getUpdatedOn()
@@ -160,80 +140,130 @@ public class RedmineExportProjectServiceImpl extends RedmineExportService
                 .atZone(ZoneId.systemDefault())
                 .toLocalDateTime();
 
-        if (redmineUpdatedOn.isAfter(lastBatchUpdatedOn)
-            && redmineUpdatedOn.isAfter(project.getUpdatedOn())) {
+        if (osUpdatedOn.isBefore(lastBatchUpdatedOn)
+            || (redmineUpdatedOn.isAfter(lastBatchUpdatedOn)
+                && redmineUpdatedOn.isAfter(osUpdatedOn))) {
           return;
         }
       }
 
-      Map<String, Object> projectMap = Mapper.toMap(project);
-      Map<String, Object> redmineProjectMap = Mapper.toMap(redmineProject);
-      Map<String, Object> redmineProjectCustomFieldsMap = new HashMap<>();
+      LOG.debug("Exporting project: " + project.getCode());
 
-      redmineProjectMap =
-          redmineDynamicExportService.createRedmineDynamic(
-              dynamicFieldsSyncList,
-              projectMap,
-              redmineProjectMap,
-              redmineProjectCustomFieldsMap,
-              metaModel,
-              project,
-              redmineManager);
-
-      // Fix - JSONObj Error
-      redmineProjectMap.remove("projectPublic");
-
-      Mapper redmineProjectMapper = Mapper.of(redmineProject.getClass());
-      Iterator<Entry<String, Object>> redmineProjectMapItr =
-          redmineProjectMap.entrySet().iterator();
-
-      while (redmineProjectMapItr.hasNext()) {
-        Map.Entry<String, Object> entry = redmineProjectMapItr.next();
-        redmineProjectMapper.set(redmineProject, entry.getKey(), entry.getValue());
-      }
-
-      // Special rule for identifier field
-      redmineProject.setIdentifier(
-          redmineProject.getIdentifier().toLowerCase().trim().replace(" ", ""));
-
-      // Special rule for add trackers to redmine project
-      Collection<Tracker> trackers = new ArrayList<Tracker>();
-      redmineManager.getIssueManager().getTrackers().forEach(tracker -> trackers.add(tracker));
-      redmineProject.addTrackers(trackers);
-
-      // Create or update redmine object
-      this.saveRedmineProject(redmineProject, project, redmineProjectCustomFieldsMap);
+      this.setRedmineProjectFields(redmineProject, project);
+      this.saveRedmineProject(redmineProject, project);
     } catch (RedmineException e) {
       TraceBackService.trace(e, "", batch.getId());
       onError.accept(e);
 
       if (e.getMessage().equals(REDMINE_SERVER_404_NOT_FOUND)) {
         setErrorLog(
-            Project.class.getSimpleName(),
+            I18n.get(IMessage.REDMINE_SYNC_PROJECT_ERROR),
+            I18n.get(IMessage.REDMINE_SYNC_EXPORT_ERROR),
             project.getId().toString(),
-            null,
             null,
             I18n.get(IMessage.REDMINE_SYNC_ERROR_RECORD_NOT_FOUND));
       }
     }
   }
 
+  public void setRedmineProjectFields(
+      com.taskadapter.redmineapi.bean.Project redmineProject, Project project) {
+
+    redmineProject.setIdentifier(project.getCode().toLowerCase().trim().replace(" ", ""));
+    redmineProject.setName(project.getName());
+    redmineProject.setDescription(project.getDescription());
+
+    Collection<Tracker> trackers = new ArrayList<Tracker>();
+    Set<ProjectCategory> projectCategorySet = project.getProjectCategorySet();
+
+    if (projectCategorySet != null && !projectCategorySet.isEmpty()) {
+
+      for (ProjectCategory projectCategory : projectCategorySet) {
+
+        try {
+          String trackerName = fieldMap.get(projectCategory.getName());
+          Tracker tracker = findRedmineTracker(trackerName);
+
+          if (tracker != null) {
+            trackers.add(tracker);
+          }
+        } catch (RedmineException e) {
+          TraceBackService.trace(e, "", batch.getId());
+        }
+      }
+      redmineProject.addTrackers(trackers);
+    }
+
+    Project parentProject = project.getParentProject();
+
+    if (parentProject != null) {
+      Integer parentProjectRedmineId = parentProject.getRedmineId();
+
+      if (parentProjectRedmineId != null && parentProjectRedmineId != 0) {
+        redmineProject.setParentId(parentProject.getRedmineId());
+      } else {
+        setErrorLog(
+            I18n.get(IMessage.REDMINE_SYNC_PROJECT_ERROR),
+            I18n.get(IMessage.REDMINE_SYNC_EXPORT_ERROR),
+            project.getCode(),
+            null,
+            I18n.get(IMessage.REDMINE_SYNC_REDMINE_PARENT_PROJECT_NOT_FOUND));
+      }
+    }
+
+    this.redmineCustomFieldsMap = new HashMap<>();
+
+    Partner clientPartner = project.getClientPartner();
+
+    if (clientPartner != null) {
+      redmineCustomFieldsMap.put("Customer Code", clientPartner.getPartnerSeq());
+    } else {
+      setErrorLog(
+          I18n.get(IMessage.REDMINE_SYNC_PROJECT_ERROR),
+          I18n.get(IMessage.REDMINE_SYNC_EXPORT_ERROR),
+          project.getCode(),
+          null,
+          I18n.get(IMessage.REDMINE_SYNC_CLIENT_PARTNER_FIELD_NOT_SET));
+    }
+
+    redmineCustomFieldsMap.put("Invoiceable", project.getIsInvoiceable() ? "1" : "0");
+    redmineCustomFieldsMap.put("OS Id", project.getId().toString());
+
+    Integer invoicingSequence = project.getInvoicingSequenceSelect();
+
+    if (invoicingSequence != null) {
+      redmineCustomFieldsMap.put(
+          "Invoicing Type",
+          invoicingSequence.equals(ProjectRepository.INVOICING_SEQ_EMPTY)
+              ? "Empty"
+              : invoicingSequence.equals(ProjectRepository.INVOICING_SEQ_INVOICE_PRE_TASK)
+                  ? "Pre-invoiced"
+                  : invoicingSequence.equals(ProjectRepository.INVOICING_SEQ_INVOICE_PRE_TASK)
+                      ? "Post-invoiced"
+                      : null);
+    } else {
+      setErrorLog(
+          I18n.get(IMessage.REDMINE_SYNC_PROJECT_ERROR),
+          I18n.get(IMessage.REDMINE_SYNC_EXPORT_ERROR),
+          project.getCode(),
+          null,
+          I18n.get(IMessage.REDMINE_SYNC_INVOICING_SEQUENCE_SELECT_FIELD_NOT_SET));
+    }
+  }
+
   @Transactional
   public void saveRedmineProject(
-      com.taskadapter.redmineapi.bean.Project redmineProject,
-      Project project,
-      Map<String, Object> redmineProjectCustomFieldsMap) {
+      com.taskadapter.redmineapi.bean.Project redmineProject, Project project) {
 
     try {
 
       if (redmineProject.getId() == null) {
         redmineProject = redmineProject.create();
+        project.setRedmineId(redmineProject.getId());
+        projectRepo.save(project);
       }
 
-      // Special fixed rule for set project members
-
       Set<User> membersUserSet = project.getMembersUserSet();
-      List<Role> roles = redmineUserManager.getRoles();
 
       for (User user : membersUserSet) {
         Partner partner = user.getPartner();
@@ -248,7 +278,7 @@ public class RedmineExportProjectServiceImpl extends RedmineExportService
 
             if (!memberships.stream().anyMatch(m -> m.getUserId() == redmineUser.getId())) {
               Membership membership =
-                  new Membership(redmineManager.getTransport(), redmineProject, redmineUser.getId())
+                  new Membership(redmineTransport, redmineProject, redmineUser.getId())
                       .addRoles(roles);
               membership.create();
             }
@@ -256,220 +286,18 @@ public class RedmineExportProjectServiceImpl extends RedmineExportService
         }
       }
 
-      project.setRedmineId(redmineProject.getId());
-      projectRepo.save(project);
+      setRedmineCustomFieldValues(redmineProject.getCustomFields());
 
-      // Set custom fields
-      setRedmineCustomFieldValues(
-          redmineProject.getCustomFields(), redmineProjectCustomFieldsMap, project.getId());
-
-      redmineProject.update();
+      if (!redmineProject.getStatus().equals(REDMINE_PROJECT_STATUS_CLOSED)) {
+        redmineProject.update();
+      }
 
       onSuccess.accept(project);
       success++;
-
-      // Export project attachments
-      // addProjectAttachments(redmineProject, project);
-
     } catch (Exception e) {
       TraceBackService.trace(e, "", batch.getId());
       onError.accept(e);
       fail++;
     }
   }
-
-  /*  public void exportProjectWikis() {
-
-    List<Wiki> projectWikis =
-        wikiRepo.all().filter("self.redmineTitle IS NULL OR self.redmineTitle = ''").fetch();
-
-    for (Wiki wiki : projectWikis) {
-      Project wikiProject = wiki.getProject();
-
-      if (wikiProject != null
-          && wikiProject.getRedmineId() != null
-          && wikiProject.getRedmineId() != 0) {
-
-        com.taskadapter.redmineapi.bean.Project redmineProject;
-
-        try {
-          redmineProject = redmineProjectManager.getProjectById(wikiProject.getRedmineId());
-
-          if (redmineProject != null) {
-            exportProjectWiki(redmineProject.getIdentifier(), wiki);
-          }
-        } catch (RedmineException e) {
-          TraceBackService.trace(e, "", batch.getId());
-          onError.accept(e);
-
-          if (e.getMessage().equals(REDMINE_SERVER_404_NOT_FOUND)) {
-            setErrorLog(
-                Project.class.getSimpleName(),
-                wikiProject.getId().toString(),
-                null,
-                null,
-                I18n.get(IMessage.REDMINE_SYNC_ERROR_RECORD_NOT_FOUND));
-          }
-        }
-      }
-    }
-  }*/
-
-  /*  @Transactional
-  public void exportProjectWiki(String projectKey, Wiki wiki) {
-
-    WikiPageDetail redmineWikiPageDetail = null;
-    boolean isExist = false;
-
-    try {
-
-      if (wiki.getUpdatedOn() != null) {
-        return;
-      }
-
-      if (!StringUtils.isBlank(wiki.getRedmineTitle())) {
-
-        try {
-          redmineWikiPageDetail =
-              redmineManager
-                  .getWikiManager()
-                  .getWikiPageDetailByProjectAndTitle(projectKey, wiki.getRedmineTitle());
-
-          if (redmineWikiPageDetail != null) {
-            isExist = true;
-          } else {
-            redmineWikiPageDetail = new WikiPageDetail(redmineManager.getTransport());
-          }
-        } catch (RedmineException e) {
-          redmineWikiPageDetail = new WikiPageDetail(redmineManager.getTransport());
-        }
-      } else {
-        redmineWikiPageDetail = new WikiPageDetail(redmineManager.getTransport());
-      }
-
-      assignProjectWikiValues(wiki, redmineWikiPageDetail);
-
-      if (isExist) {
-        redmineWikiPageDetail.update();
-      } else {
-        redmineWikiPageDetail.setProjectKey(projectKey);
-        redmineWikiPageDetail.create();
-      }
-
-      wikiRepo.save(wiki);
-    } catch (RedmineException e) {
-      TraceBackService.trace(e, "", batch.getId());
-      onError.accept(e);
-    }
-  }*/
-
-  /*  public void assignProjectWikiValues(Wiki wiki, WikiPageDetail redmineWikiPageDetail) {
-
-    String wikiTitle = wiki.getId().toString();
-
-    if (!StringUtils.isBlank(wiki.getTitle())) {
-      wikiTitle += "_" + wiki.getTitle().replaceAll("[ ]+", "_");
-    }
-
-    redmineWikiPageDetail.setTitle(wikiTitle);
-    redmineWikiPageDetail.setText(getTextileFromHTML(wiki.getContent()));
-    wiki.setRedmineTitle(wikiTitle.replace("_", " "));
-    List<Attachment> attachments = getAttachments(wiki.getId(), wiki.getClass().getName());
-
-    if (attachments != null && !attachments.isEmpty()) {
-      redmineWikiPageDetail.setAttachments(attachments);
-    }
-  }*/
-
-  /*  @Transactional
-  public List<Attachment> getAttachments(Long objectId, String objectName) {
-
-    List<MetaAttachment> attachments =
-        Beans.get(MetaAttachmentRepository.class)
-            .all()
-            .filter("self.objectId = ?1 AND self.objectName = ?2", objectId, objectName)
-            .fetch();
-
-    if (attachments != null && !attachments.isEmpty()) {
-      List<Attachment> redmineAttachments = new ArrayList<>();
-
-      for (MetaAttachment metaAttachment : attachments) {
-
-        try {
-          DMSFile existingFile =
-              dmsFileRepo
-                  .all()
-                  .filter(
-                      "self.relatedId = ?1 AND self.relatedModel = ?2 AND self.metaFile = ?3 AND (self.redmineId IS NULL OR self.redmineId = 0)",
-                      metaAttachment.getObjectId(),
-                      metaAttachment.getObjectName(),
-                      metaAttachment.getMetaFile())
-                  .fetchOne();
-
-          if (existingFile != null) {
-            MetaFile metaFile = metaAttachment.getMetaFile();
-            File attachmentFile = MetaFiles.getPath(metaFile).toFile();
-
-            if (attachmentFile.exists()) {
-              Attachment attachment =
-                  redmineManager
-                      .getAttachmentManager()
-                      .uploadAttachment(metaFile.getFileType(), attachmentFile);
-              redmineAttachments.add(attachment);
-              existingFile.setRedmineId(attachment.getId());
-              dmsFileRepo.save(existingFile);
-            }
-          }
-        } catch (RedmineException | IOException e) {
-          TraceBackService.trace(e, "", batch.getId());
-          onError.accept(e);
-        }
-      }
-
-      return redmineAttachments;
-    }
-
-    return null;
-  }*/
-
-  /*  public void addProjectAttachments(
-      com.taskadapter.redmineapi.bean.Project redmineProject, Project project) {
-
-    List<Attachment> projectAttachments =
-        getAttachments(project.getId(), project.getClass().getName());
-
-    if (projectAttachments != null && !projectAttachments.isEmpty()) {
-      AppRedmine appRedmine = appRedmineRepo.all().fetchOne();
-      String url = appRedmine.getUri() + "/projects/" + redmineProject.getId() + "/files.json";
-      String accessKey = appRedmine.getApiAccessKey();
-      OkHttpClient client = new OkHttpClient();
-      Builder builder = new Request.Builder().url(url).addHeader("X-Redmine-API-Key", accessKey);
-
-      for (Attachment attachment : projectAttachments) {
-        attachProjectFile(attachment.getToken(), builder, client);
-      }
-    }
-  }*/
-
-  /*  public void attachProjectFile(String attachmentTocken, Builder builder, OkHttpClient client) {
-
-    try {
-      RequestBody requestBody =
-          RequestBody.create(
-              MediaType.parse("application/json; charset=utf-8"),
-              "{\"file\" :  {\"token\": \"" + attachmentTocken + "\"} }");
-
-      Request request = builder.post(requestBody).build();
-
-      try {
-        client.newCall(request).execute();
-      } catch (IOException e) {
-        TraceBackService.trace(e, "", batch.getId());
-        onError.accept(e);
-      }
-    } catch (Exception e) {
-      TraceBackService.trace(e, "", batch.getId());
-      onError.accept(e);
-    }
-  }*/
 }

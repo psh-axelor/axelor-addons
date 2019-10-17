@@ -30,24 +30,79 @@ public interface IMessage {
   static final String REDMINE_TRANSPORT = /*$$(*/
       "Error connecting redmine server. Please check the configuration" /*)*/;
 
-  static final String REDMINE_SYNC_ERROR_ABS_FIELD_NOT_EXIST = /*$$(*/
-      "No such field found on ABS" /*)*/;
-
-  static final String REDMINE_SYNC_ERROR_REDMINE_FIELD_NOT_EXIST = /*$$(*/
-      "No such field found on Redmine" /*)*/;
-
   static final String REDMINE_SYNC_ERROR_RECORD_NOT_FOUND = /*$$(*/
       "No record found with linked Redmine Id" /*)*/;
 
   static final String REDMINE_SYNC_ERROR_ASSIGNEE_IS_NOT_VALID = /*$$(*/
       "Assignee have no membership for associated project" /*)*/;
 
-  static final String REDMINE_SYNC_ERROR_ISSUE_PROJECT_NOT_FOUND = /*$$(*/
-      "Associated project is not synced or not found" /*)*/;
+  static final String REDMINE_SYNC_EXPORT_ERROR = /*$$(*/ "Export" /*)*/;
 
-  static final String REDMINE_SYNC_ERROR_REQUIRED_FIEDS_BINDINGS_MISSING = /*$$(*/
-      "Required field bindings are missing for sync" /*)*/;
+  static final String REDMINE_SYNC_IMPORT_ERROR = /*$$(*/ "Import" /*)*/;
 
-  static final String REDMINE_SYNC_ERROR_DYNAMIC_FIELDS_SYNC_LIST_NOT_FOUND = /*$$(*/
-      "Dynamic fields sync list not configured" /*)*/;
+  static final String REDMINE_SYNC_TEAMTASK_ERROR = /*$$(*/ "TeamTask" /*)*/;
+
+  static final String REDMINE_SYNC_PROJECT_ERROR = /*$$(*/ "Project" /*)*/;
+
+  static final String REDMINE_SYNC_TIMESHEET_LINE_ERROR = /*$$(*/ "TimesheetLine" /*)*/;
+
+  static final String REDMINE_SYNC_PRODUCT_FIELD_NOT_SET = /*$$(*/
+      "Entity not exported, product field not set" /*)*/;
+
+  static final String REDMINE_SYNC_ERROR_PARENT_TASK_NOT_FOUND = /*$$(*/
+      "Entity not exported, no parent task found in Redmine" /*)*/;
+
+  static final String REDMINE_SYNC_REDMINE_PROJECT_NOT_FOUND = /*$$(*/
+      "Entity not exported, no project found in Redmine" /*)*/;
+
+  static final String REDMINE_SYNC_TRACKER_NOT_FOUND = /*$$(*/
+      "Entity not exported, no tracker found in Redmine" /*)*/;
+
+  static final String REDMINE_SYNC_ISSUE_NOT_FOUND = /*$$(*/
+      "Entity not exported, no issue found in Redmine" /*)*/;
+
+  static final String REDMINE_SYNC_EXPORT_WITH_DEFAULT_STATUS = /*$$(*/
+      "Issue status not found in Redmine, exported with default status" /*)*/;
+
+  static final String REDMINE_SYNC_EXPORT_WITH_DEFAULT_PRIORITY = /*$$(*/
+      "Entity priority not found in Redmine, exported with default priority" /*)*/;
+
+  static final String REDMINE_SYNC_REDMINE_PARENT_PROJECT_NOT_FOUND = /*$$(*/
+      "Parent project not found on Redmine while it's set in OS" /*)*/;
+
+  static final String REDMINE_SYNC_CLIENT_PARTNER_FIELD_NOT_SET = /*$$(*/
+      "Client partner field not set" /*)*/;
+
+  static final String REDMINE_SYNC_INVOICING_SEQUENCE_SELECT_FIELD_NOT_SET = /*$$(*/
+      "Invoicing sequence field not set" /*)*/;
+
+  static final String REDMINE_SYNC_CUSTOM_FIELD_PRODUCT_NOT_FOUND = /*$$(*/
+      "Entity not imported, custom field 'Product' value not found" /*)*/;
+
+  static final String REDMINE_SYNC_PARENT_TASK_NOT_FOUND = /*$$(*/
+      "Entity not imported, no parent task found in OS" /*)*/;
+
+  static final String REDMINE_SYNC_PROJECT_NOT_FOUND = /*$$(*/
+      "Entity not imported, no project found in OS" /*)*/;
+
+  static final String REDMINE_SYNC_PROJECT_CATEGORY_NOT_FOUND = /*$$(*/
+      "Entity not imported, no project category found in OS" /*)*/;
+
+  static final String REDMINE_SYNC_IMPORT_WITH_DEFAULT_STATUS = /*$$(*/
+      "Teamtask status not found in OS, imported with default status" /*)*/;
+
+  static final String REDMINE_SYNC_IMPORT_WITH_DEFAULT_PRIORITY = /*$$(*/
+      "Teamtask priority not found in OS, imported with default priority" /*)*/;
+
+  static final String REDMINE_SYNC_CUSTOM_FIELD_CUSTOMER_CODE_NOT_FOUND = /*$$(*/
+      "Custom field 'Customer Code' value not found" /*)*/;
+
+  static final String REDMINE_SYNC_CUSTOM_FIELD_INVOICING_TYPE_NOT_FOUND = /*$$(*/
+      "Custom field 'Invoicing Type' value not found" /*)*/;
+
+  static final String REDMINE_SYNC_PARENT_PROJECT_NOT_FOUND = /*$$(*/
+      "Parent project not found on OS while it's set in redmine" /*)*/;
+
+  static final String REDMINE_SYNC_TEAM_TASK_NOT_FOUND = /*$$(*/
+      "Entity not imported, no teamtask found in OS" /*)*/;
 }

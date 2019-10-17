@@ -18,95 +18,141 @@
 package com.axelor.apps.redmine.exports.service;
 
 import com.axelor.apps.base.db.Batch;
+import com.axelor.apps.base.db.Product;
+import com.axelor.apps.base.db.repo.PartnerRepository;
+import com.axelor.apps.base.db.repo.ProductRepository;
 import com.axelor.apps.hr.db.TimesheetLine;
 import com.axelor.apps.hr.db.repo.TimesheetLineRepository;
-import com.axelor.apps.redmine.db.OpenSuitRedmineSync;
-import com.axelor.apps.redmine.db.repo.OpenSuitRedmineSyncRepository;
+import com.axelor.apps.project.db.repo.ProjectCategoryRepository;
+import com.axelor.apps.project.db.repo.ProjectRepository;
 import com.axelor.apps.redmine.message.IMessage;
-import com.axelor.db.mapper.Mapper;
+import com.axelor.apps.redmine.sync.service.RedmineSyncService;
+import com.axelor.auth.db.repo.UserRepository;
 import com.axelor.exception.service.TraceBackService;
 import com.axelor.i18n.I18n;
-import com.axelor.meta.db.repo.MetaModelRepository;
+import com.axelor.team.db.TeamTask;
+import com.axelor.team.db.repo.TeamTaskRepository;
 import com.google.inject.Inject;
 import com.google.inject.persist.Transactional;
+import com.taskadapter.redmineapi.IssueManager;
+import com.taskadapter.redmineapi.ProjectManager;
 import com.taskadapter.redmineapi.RedmineException;
-import com.taskadapter.redmineapi.RedmineManager;
+import com.taskadapter.redmineapi.TimeEntryManager;
+import com.taskadapter.redmineapi.UserManager;
+import com.taskadapter.redmineapi.bean.Issue;
+import com.taskadapter.redmineapi.bean.Project;
 import com.taskadapter.redmineapi.bean.TimeEntry;
+import com.taskadapter.redmineapi.bean.TimeEntryActivity;
 import com.taskadapter.redmineapi.bean.User;
+import com.taskadapter.redmineapi.internal.Transport;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RedmineExportTimeSpentServiceImpl extends RedmineExportService
+public class RedmineExportTimeSpentServiceImpl extends RedmineSyncService
     implements RedmineExportTimeSpentService {
 
-  protected OpenSuitRedmineSyncRepository openSuiteRedmineSyncRepo;
   protected TimesheetLineRepository timesheetLineRepo;
-  protected MetaModelRepository metaModelRepo;
-  protected RedmineDynamicExportService redmineDynamicExportService;
 
   @Inject
   public RedmineExportTimeSpentServiceImpl(
-      OpenSuitRedmineSyncRepository openSuiteRedmineSyncRepo,
-      TimesheetLineRepository timesheetLineRepo,
-      MetaModelRepository metaModelRepo,
-      RedmineDynamicExportService redmineDynamicExportService) {
+      UserRepository userRepo,
+      ProjectRepository projectRepo,
+      ProductRepository productRepo,
+      TeamTaskRepository teamTaskRepo,
+      ProjectCategoryRepository projectCategoryRepo,
+      PartnerRepository partnerRepo,
+      TimesheetLineRepository timesheetLineRepo) {
 
-    this.openSuiteRedmineSyncRepo = openSuiteRedmineSyncRepo;
+    super(userRepo, projectRepo, productRepo, teamTaskRepo, projectCategoryRepo, partnerRepo);
     this.timesheetLineRepo = timesheetLineRepo;
-    this.metaModelRepo = metaModelRepo;
-    this.redmineDynamicExportService = redmineDynamicExportService;
   }
 
   Logger LOG = LoggerFactory.getLogger(getClass());
-  private LocalDateTime lastBatchUpdatedOn;
+  protected TimeEntryActivity defaultTimeEntryActivity;
+  protected Project redmineProject;
+  protected Issue redmineIssue;
+  protected Product product;
 
   @Override
+  @SuppressWarnings("unchecked")
   public void exportTimeSpent(
-      Batch batch,
-      LocalDateTime lastBatchUpdatedOn,
-      RedmineManager redmineManager,
-      List<TimesheetLine> timesheetLineList,
-      Consumer<Object> onSuccess,
-      Consumer<Throwable> onError,
-      List<Object[]> errorObjList) {
+      List<TimesheetLine> timesheetLineList, HashMap<String, Object> paramsMap) {
 
     if (timesheetLineList != null && !timesheetLineList.isEmpty()) {
-      OpenSuitRedmineSync openSuiteRedmineSyncSpentTime =
-          openSuiteRedmineSyncRepo.findBySyncTypeSelect(
-              OpenSuitRedmineSyncRepository.SYNC_TYPE_SPENT_TIME);
+      this.onError = (Consumer<Throwable>) paramsMap.get("onError");
+      this.onSuccess = (Consumer<Object>) paramsMap.get("onSuccess");
+      this.batch = (Batch) paramsMap.get("batch");
+      this.redmineIssueManager = (IssueManager) paramsMap.get("redmineIssueManager");
+      this.redmineUserManager = (UserManager) paramsMap.get("redmineUserManager");
+      this.redmineProjectManager = (ProjectManager) paramsMap.get("redmineProjectManager");
+      this.redmineTimeEntryManager = (TimeEntryManager) paramsMap.get("redmineTimeEntryManager");
+      this.redmineTransport = (Transport) paramsMap.get("redmineTransport");
+      this.errorObjList = (List<Object[]>) paramsMap.get("errorObjList");
+      this.lastBatchUpdatedOn = (LocalDateTime) paramsMap.get("lastBatchUpdatedOn");
 
-      this.errorObjList = errorObjList;
-      this.dynamicFieldsSyncList = openSuiteRedmineSyncSpentTime.getDynamicFieldsSyncList();
+      try {
+        this.defaultTimeEntryActivity = redmineTimeEntryManager.getTimeEntryActivities().get(0);
+      } catch (RedmineException e) {
+        TraceBackService.trace(e, "", batch.getId());
+      }
 
-      if (validateDynamicFieldsSyncList(
-          dynamicFieldsSyncList,
-          METAMODEL_TIMESHEET_LINE,
-          Mapper.toMap(new TimesheetLine()),
-          Mapper.toMap(new com.taskadapter.redmineapi.bean.TimeEntry(null)))) {
+      for (TimesheetLine timesheetLine : timesheetLineList) {
+        try {
+          com.axelor.apps.project.db.Project project = timesheetLine.getProject();
+          this.redmineProject = project != null ? findRedmineProject(project.getRedmineId()) : null;
 
-        this.redmineManager = redmineManager;
-        this.batch = batch;
-        this.onError = onError;
-        this.onSuccess = onSuccess;
-        this.redmineTimeEntryManager = redmineManager.getTimeEntryManager();
-        this.redmineUserManager = redmineManager.getUserManager();
-        this.metaModel = metaModelRepo.findByName(METAMODEL_TIMESHEET_LINE);
-        this.lastBatchUpdatedOn = lastBatchUpdatedOn;
+          if (redmineProject == null) {
+            setErrorLog(
+                I18n.get(IMessage.REDMINE_SYNC_TIMESHEET_LINE_ERROR),
+                I18n.get(IMessage.REDMINE_SYNC_EXPORT_ERROR),
+                timesheetLine.getId().toString(),
+                null,
+                I18n.get(IMessage.REDMINE_SYNC_REDMINE_PROJECT_NOT_FOUND));
 
-        String syncTypeSelect = openSuiteRedmineSyncSpentTime.getOpenSuiteToRedmineSyncSelect();
+            fail++;
+            continue;
+          }
 
-        for (TimesheetLine timesheetLine : timesheetLineList) {
-          createRedmineSpentTime(timesheetLine, syncTypeSelect);
+          TeamTask teamTask = timesheetLine.getTeamTask();
+          this.redmineIssue = teamTask != null ? findRedmineIssue(teamTask.getRedmineId()) : null;
+
+          if (redmineIssue == null) {
+            setErrorLog(
+                I18n.get(IMessage.REDMINE_SYNC_TIMESHEET_LINE_ERROR),
+                I18n.get(IMessage.REDMINE_SYNC_EXPORT_ERROR),
+                timesheetLine.getId().toString(),
+                null,
+                I18n.get(IMessage.REDMINE_SYNC_ISSUE_NOT_FOUND));
+
+            fail++;
+            continue;
+          }
+
+          this.product = timesheetLine.getProduct();
+
+          if (product == null) {
+            setErrorLog(
+                I18n.get(IMessage.REDMINE_SYNC_TIMESHEET_LINE_ERROR),
+                I18n.get(IMessage.REDMINE_SYNC_EXPORT_ERROR),
+                timesheetLine.getId().toString(),
+                null,
+                I18n.get(IMessage.REDMINE_SYNC_PRODUCT_FIELD_NOT_SET));
+
+            fail++;
+            continue;
+          }
+        } catch (RedmineException e) {
+          TraceBackService.trace(e, "", batch.getId());
         }
+
+        createRedmineSpentTime(timesheetLine);
       }
     }
 
@@ -118,30 +164,20 @@ public class RedmineExportTimeSpentServiceImpl extends RedmineExportService
     success = fail = 0;
   }
 
-  public void createRedmineSpentTime(TimesheetLine timesheetLine, String syncTypeSelect) {
+  public void createRedmineSpentTime(TimesheetLine timesheetLine) {
 
     try {
-      com.taskadapter.redmineapi.bean.TimeEntry redmineTimeEntry = null;
+      TimeEntry redmineTimeEntry = null;
+      Integer redmineId = timesheetLine.getRedmineId();
 
-      if (timesheetLine.getRedmineId() == null || timesheetLine.getRedmineId().equals(0)) {
-        redmineTimeEntry =
-            new com.taskadapter.redmineapi.bean.TimeEntry(redmineManager.getTransport());
-      } else {
-        redmineTimeEntry = redmineTimeEntryManager.getTimeEntry(timesheetLine.getRedmineId());
+      if (redmineId != null && redmineId != 0) {
+        redmineTimeEntry = redmineTimeEntryManager.getTimeEntry(redmineId);
       }
 
-      // Sync type - On create
-      if (syncTypeSelect.equals(OpenSuitRedmineSyncRepository.SYNC_ON_CREATE)
-          && (timesheetLine.getRedmineId() != null && !timesheetLine.getRedmineId().equals(0))) {
-        return;
-      }
-
-      // Sync type - On update
-      if (syncTypeSelect.equals(OpenSuitRedmineSyncRepository.SYNC_ON_UPDATE)
-          && redmineTimeEntry.getUpdatedOn() != null
-          && lastBatchUpdatedOn != null) {
-
-        // If updates are made on both sides and redmine side is latest updated then abort export
+      if (redmineTimeEntry == null) {
+        redmineTimeEntry = new TimeEntry(redmineTransport);
+      } else if (lastBatchUpdatedOn != null) {
+        LocalDateTime osUpdatedOn = timesheetLine.getUpdatedOn();
         LocalDateTime redmineUpdatedOn =
             redmineTimeEntry
                 .getUpdatedOn()
@@ -149,82 +185,62 @@ public class RedmineExportTimeSpentServiceImpl extends RedmineExportService
                 .atZone(ZoneId.systemDefault())
                 .toLocalDateTime();
 
-        if (redmineUpdatedOn.isAfter(lastBatchUpdatedOn)
-            && redmineUpdatedOn.isAfter(timesheetLine.getUpdatedOn())) {
+        if (osUpdatedOn.isBefore(lastBatchUpdatedOn)
+            || (redmineUpdatedOn.isAfter(lastBatchUpdatedOn)
+                && redmineUpdatedOn.isAfter(osUpdatedOn))) {
           return;
         }
       }
 
-      Map<String, Object> timesheetLineMap = Mapper.toMap(timesheetLine);
-      Map<String, Object> redmineTimeEntryMap = Mapper.toMap(redmineTimeEntry);
-      Map<String, Object> redmineTimeEntryCustomFieldsMap = new HashMap<>();
+      LOG.debug("Exporting timesheetline: " + timesheetLine.getId());
 
-      redmineTimeEntryMap =
-          redmineDynamicExportService.createRedmineDynamic(
-              dynamicFieldsSyncList,
-              timesheetLineMap,
-              redmineTimeEntryMap,
-              redmineTimeEntryCustomFieldsMap,
-              metaModel,
-              timesheetLine,
-              redmineManager);
-
-      // Temporary error fix
-      redmineTimeEntryMap.remove("valid");
-
-      Mapper redmineTimeEntryMapper = Mapper.of(redmineTimeEntry.getClass());
-
-      Iterator<Entry<String, Object>> redmineProjectMapItr =
-          redmineTimeEntryMap.entrySet().iterator();
-
-      while (redmineProjectMapItr.hasNext()) {
-        Map.Entry<String, Object> entry = redmineProjectMapItr.next();
-        redmineTimeEntryMapper.set(redmineTimeEntry, entry.getKey(), entry.getValue());
-      }
-
-      // Fix - spentOn and activity field values
-      redmineTimeEntry.setSpentOn(new Date());
-      redmineTimeEntry.setActivityId(
-          redmineTimeEntryManager.getTimeEntryActivities().get(0).getId());
-
-      // Special rule for user
-      if (timesheetLine.getUser() != null
-          && timesheetLine.getUser().getPartner() != null
-          && timesheetLine.getUser().getPartner().getEmailAddress() != null) {
-        User redmineUser =
-            findRedmineUserByEmail(
-                timesheetLine.getUser().getPartner().getEmailAddress().getAddress());
-
-        if (redmineUser == null) {
-          redmineUser = redmineUserManager.getCurrentUser();
-        }
-
-        redmineTimeEntry.setUserId(redmineUser.getId());
-        redmineTimeEntry.setUserName(redmineUser.getFullName());
-      }
-
-      // Create or update redmine object
-      this.saveRedmineSpentTime(redmineTimeEntry, timesheetLine, redmineTimeEntryCustomFieldsMap);
+      this.setRedmineSpentTimeFields(redmineTimeEntry, timesheetLine);
+      this.saveRedmineSpentTime(redmineTimeEntry, timesheetLine);
     } catch (RedmineException e) {
       TraceBackService.trace(e, "", batch.getId());
       onError.accept(e);
 
       if (e.getMessage().equals(REDMINE_SERVER_404_NOT_FOUND)) {
         setErrorLog(
-            TimesheetLine.class.getSimpleName(),
+            I18n.get(IMessage.REDMINE_SYNC_TIMESHEET_LINE_ERROR),
+            I18n.get(IMessage.REDMINE_SYNC_EXPORT_ERROR),
             timesheetLine.getId().toString(),
-            null,
             null,
             I18n.get(IMessage.REDMINE_SYNC_ERROR_RECORD_NOT_FOUND));
       }
     }
   }
 
+  public void setRedmineSpentTimeFields(TimeEntry redmineTimeEntry, TimesheetLine timesheetLine) {
+
+    redmineTimeEntry.setProjectId(redmineProject.getId());
+    redmineTimeEntry.setIssueId(redmineIssue.getId());
+    redmineTimeEntry.setComment(timesheetLine.getComments());
+    redmineTimeEntry.setSpentOn(
+        Date.from(timesheetLine.getDate().atStartOfDay(ZoneId.of("UTC")).toInstant()));
+
+    BigDecimal duration = timesheetLine.getDuration();
+
+    if (duration != null) {
+      redmineTimeEntry.setHours(duration.floatValue());
+    }
+
+    redmineTimeEntry.setActivityId(defaultTimeEntryActivity.getId());
+
+    com.axelor.auth.db.User user = timesheetLine.getUser();
+
+    if (user != null && user.getPartner() != null && user.getPartner().getEmailAddress() != null) {
+      User redmineUser = findRedmineUserByEmail(user.getPartner().getEmailAddress().getAddress());
+
+      if (redmineUser != null) {
+        redmineTimeEntry.setUserId(redmineUser.getId());
+        redmineTimeEntry.setUserName(redmineUser.getFullName());
+      }
+    }
+  }
+
   @Transactional
-  public void saveRedmineSpentTime(
-      TimeEntry redmineTimeEntry,
-      TimesheetLine timesheetLine,
-      Map<String, Object> redmineTimeEntryCustomFieldsMap) {
+  public void saveRedmineSpentTime(TimeEntry redmineTimeEntry, TimesheetLine timesheetLine) {
 
     try {
 
@@ -234,11 +250,8 @@ public class RedmineExportTimeSpentServiceImpl extends RedmineExportService
         timesheetLineRepo.save(timesheetLine);
       }
 
-      // Set custom fields
-      setRedmineCustomFieldValues(
-          redmineTimeEntry.getCustomFields(),
-          redmineTimeEntryCustomFieldsMap,
-          timesheetLine.getId());
+      redmineTimeEntry.getCustomField("Product").setValue(product.getCode());
+      redmineTimeEntry.getCustomField("OS Id").setValue(timesheetLine.getId().toString());
 
       redmineTimeEntry.update();
 

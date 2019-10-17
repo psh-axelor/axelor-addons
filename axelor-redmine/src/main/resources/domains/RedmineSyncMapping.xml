@@ -5,11 +5,12 @@
 
 	<module name="redmine" package="com.axelor.apps.redmine.db" />
 
-	<entity name="ValuesMapping" lang="java">
+	<entity name="RedmineSyncMapping" lang="java">
 
-		<string name="selectValueInRedmine" />
-		<string name="selectValueInAbs" />
-		<many-to-one name="dynamicFieldsSync" ref="com.axelor.apps.redmine.db.DynamicFieldsSync"/>
+		<string name="redmineValue" title="Redmine value" required="true" />
+		<string name="osValue" title="OS value" required="true" />
+		<many-to-one name="redmineSyncConfig"
+			ref="com.axelor.apps.redmine.db.RedmineSyncConfig" />
 
 	</entity>
 

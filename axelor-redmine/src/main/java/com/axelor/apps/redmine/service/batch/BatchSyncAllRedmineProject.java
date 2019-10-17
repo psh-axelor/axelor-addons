@@ -18,25 +18,26 @@
 package com.axelor.apps.redmine.service.batch;
 
 import com.axelor.apps.base.service.administration.AbstractBatch;
-import com.axelor.apps.redmine.exports.service.RedmineExportService;
-import com.axelor.apps.redmine.imports.service.RedmineImportService;
 import com.axelor.apps.redmine.service.RedmineService;
+import com.axelor.apps.redmine.sync.service.RedmineSyncService;
 import com.google.inject.Inject;
 
-public class BatchSyncAllRedmine extends AbstractBatch {
+public class BatchSyncAllRedmineProject extends AbstractBatch {
 
   @Inject private RedmineService redmineService;
 
   @Override
   protected void process() {
 
-    redmineService.redmineSync(batch, ticket -> incrementDone(), error -> incrementAnomaly());
+    redmineService.redmineSyncProjects(
+        batch, ticket -> incrementDone(), error -> incrementAnomaly());
   }
 
   @Override
   protected void stop() {
+
     super.stop();
-    String comments = RedmineExportService.result + "\n" + RedmineImportService.result;
+    String comments = RedmineSyncService.result;
     addComment(comments);
   }
 }

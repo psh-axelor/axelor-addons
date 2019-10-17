@@ -15,23 +15,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.exports.service;
+package com.axelor.apps.redmine.issue.sync;
 
 import com.axelor.apps.base.db.Batch;
-import com.axelor.apps.businesssupport.db.ProjectVersion;
 import com.taskadapter.redmineapi.RedmineManager;
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.function.Consumer;
 
-public interface RedmineExportVersionService {
+public interface RedmineSyncIssueService {
 
-  void exportVersion(
+  void redmineSyncIssue(
       Batch batch,
-      LocalDateTime lastBatchUpdatedOn,
       RedmineManager redmineManager,
-      List<ProjectVersion> exportVersionList,
       Consumer<Object> onSuccess,
-      Consumer<Throwable> onError,
-      List<Object[]> errorObjList);
+      Consumer<Throwable> onError);
 }

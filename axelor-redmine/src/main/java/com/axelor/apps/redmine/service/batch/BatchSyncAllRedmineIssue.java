@@ -15,22 +15,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.imports.service;
+package com.axelor.apps.redmine.service.batch;
 
-import com.axelor.apps.redmine.db.DynamicFieldsSync;
-import com.axelor.meta.db.MetaModel;
-import com.taskadapter.redmineapi.RedmineManager;
-import java.util.List;
-import java.util.Map;
+import com.axelor.apps.base.service.administration.AbstractBatch;
+import com.axelor.apps.redmine.service.RedmineService;
+import com.axelor.apps.redmine.sync.service.RedmineSyncService;
+import com.google.inject.Inject;
 
-public interface RedmineDynamicImportService {
+public class BatchSyncAllRedmineIssue extends AbstractBatch {
 
-  Map<String, Object> createOpenSuiteDynamic(
-      List<DynamicFieldsSync> dynamicFieldsSyncList,
-      Map<String, Object> osMap,
-      Map<String, Object> redmineMap,
-      Map<String, Object> redmineCustomFieldsMap,
-      MetaModel metaModel,
-      Object redmineObj,
-      RedmineManager redmineManager);
+  @Inject private RedmineService redmineService;
+
+  @Override
+  protected void process() {
+
+    redmineService.redmineSyncIssues(batch, ticket -> incrementDone(), error -> incrementAnomaly());
+  }
+
+  @Override
+  protected void stop() {
+    super.stop();
+    String comments = RedmineSyncService.result;
+    addComment(comments);
+  }
 }

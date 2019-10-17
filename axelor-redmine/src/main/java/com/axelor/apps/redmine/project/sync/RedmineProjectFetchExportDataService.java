@@ -15,16 +15,32 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.exports.service;
+package com.axelor.apps.redmine.project.sync;
 
 import com.axelor.apps.project.db.Project;
-import java.util.HashMap;
+import com.axelor.apps.project.db.repo.ProjectRepository;
+import com.google.inject.Inject;
+import java.time.LocalDateTime;
 import java.util.List;
 
-public interface RedmineExportProjectService {
+public class RedmineProjectFetchExportDataService {
 
-  void exportProject(
-      List<Project> exportProjectList,
-      HashMap<String, Object> paramsMap,
-      HashMap<String, String> exportFieldMap);
+  @Inject ProjectRepository projectRepo;
+
+  public List<Project> fetchExportData(LocalDateTime lastBatchEndDate) {
+
+    List<Project> exportProjectList = null;
+
+    exportProjectList =
+        lastBatchEndDate != null
+            ? projectRepo
+                .all()
+                .filter(
+                    "self.updatedOn >= ?1 OR self.redmineId is null OR self.redmineId = 0",
+                    lastBatchEndDate)
+                .fetch()
+            : projectRepo.all().fetch();
+
+    return exportProjectList;
+  }
 }

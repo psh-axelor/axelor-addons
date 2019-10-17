@@ -18,10 +18,14 @@
 package com.axelor.apps.redmine.service.batch;
 
 import com.axelor.apps.base.db.Batch;
+import com.axelor.apps.base.exceptions.IExceptionMessage;
 import com.axelor.apps.base.service.administration.AbstractBatchService;
 import com.axelor.apps.redmine.db.RedmineBatch;
+import com.axelor.apps.redmine.db.repo.RedmineBatchRepository;
 import com.axelor.db.Model;
 import com.axelor.exception.AxelorException;
+import com.axelor.exception.db.repo.TraceBackRepository;
+import com.axelor.i18n.I18n;
 import com.axelor.inject.Beans;
 
 public class RedmineBatchService extends AbstractBatchService {
@@ -33,15 +37,33 @@ public class RedmineBatchService extends AbstractBatchService {
 
   @Override
   public Batch run(Model batchModel) throws AxelorException {
+
     Batch batch;
     RedmineBatch redmineBatch = (RedmineBatch) batchModel;
 
-    batch = redmineSyncProcess(redmineBatch);
+    switch (redmineBatch.getRedmineActionSelect()) {
+      case RedmineBatchRepository.ACTION_SELECT_SYNC_PROJECT:
+        batch = redmineSyncProjects(redmineBatch);
+        break;
+      case RedmineBatchRepository.ACTION_SELECT_SYNC_ISSUE:
+        batch = redmineSyncIssues(redmineBatch);
+        break;
+      default:
+        throw new AxelorException(
+            TraceBackRepository.CATEGORY_INCONSISTENCY,
+            I18n.get(IExceptionMessage.BASE_BATCH_1),
+            redmineBatch.getRedmineActionSelect(),
+            redmineBatch.getCode());
+    }
 
     return batch;
   }
 
-  public Batch redmineSyncProcess(RedmineBatch redmineBatch) {
-    return Beans.get(BatchSyncAllRedmine.class).run(redmineBatch);
+  public Batch redmineSyncProjects(RedmineBatch redmineBatch) {
+    return Beans.get(BatchSyncAllRedmineProject.class).run(redmineBatch);
+  }
+
+  public Batch redmineSyncIssues(RedmineBatch redmineBatch) {
+    return Beans.get(BatchSyncAllRedmineIssue.class).run(redmineBatch);
   }
 }

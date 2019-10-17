@@ -17,21 +17,11 @@
  */
 package com.axelor.apps.redmine.exports.service;
 
-import com.axelor.apps.base.db.Batch;
 import com.axelor.apps.hr.db.TimesheetLine;
-import com.taskadapter.redmineapi.RedmineManager;
-import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
-import java.util.function.Consumer;
 
 public interface RedmineExportTimeSpentService {
 
-  void exportTimeSpent(
-      Batch batch,
-      LocalDateTime lastBatchUpdatedOn,
-      RedmineManager redmineManager,
-      List<TimesheetLine> exportTimeSpentList,
-      Consumer<Object> onSuccess,
-      Consumer<Throwable> onError,
-      List<Object[]> errorObjList);
+  void exportTimeSpent(List<TimesheetLine> exportTimeSpentList, HashMap<String, Object> paramsMap);
 }

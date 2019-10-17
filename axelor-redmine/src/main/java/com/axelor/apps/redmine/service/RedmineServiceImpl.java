@@ -20,8 +20,9 @@ package com.axelor.apps.redmine.service;
 import com.axelor.apps.base.db.AppRedmine;
 import com.axelor.apps.base.db.Batch;
 import com.axelor.apps.base.db.repo.AppRedmineRepository;
+import com.axelor.apps.redmine.issue.sync.RedmineSyncIssueService;
 import com.axelor.apps.redmine.message.IMessage;
-import com.axelor.apps.redmine.sync.process.RedmineSyncProcessService;
+import com.axelor.apps.redmine.project.sync.RedmineSyncProjectService;
 import com.axelor.common.StringUtils;
 import com.axelor.exception.AxelorException;
 import com.axelor.exception.db.repo.TraceBackRepository;
@@ -39,11 +40,13 @@ import java.util.function.Consumer;
 public class RedmineServiceImpl implements RedmineService {
 
   @Inject private AppRedmineRepository appRedmineRepo;
-  @Inject protected RedmineSyncProcessService redmineSyncProcessService;
+  @Inject protected RedmineSyncProjectService redmineSyncProjectService;
+  @Inject protected RedmineSyncIssueService redmineSyncIssueService;
 
   @Override
   @Transactional
-  public void redmineSync(Batch batch, Consumer<Object> onSuccess, Consumer<Throwable> onError) {
+  public void redmineSyncProjects(
+      Batch batch, Consumer<Object> onSuccess, Consumer<Throwable> onError) {
 
     try {
       RedmineManager redmineManager = getRedmineManager();
@@ -52,7 +55,25 @@ public class RedmineServiceImpl implements RedmineService {
         return;
       }
 
-      redmineSyncProcessService.redmineSyncProcess(batch, redmineManager, onSuccess, onError);
+      redmineSyncProjectService.redmineSyncProject(batch, redmineManager, onSuccess, onError);
+    } catch (Exception e) {
+      TraceBackService.trace(e, "", batch.getId());
+    }
+  }
+
+  @Override
+  @Transactional
+  public void redmineSyncIssues(
+      Batch batch, Consumer<Object> onSuccess, Consumer<Throwable> onError) {
+
+    try {
+      RedmineManager redmineManager = getRedmineManager();
+
+      if (redmineManager == null) {
+        return;
+      }
+
+      redmineSyncIssueService.redmineSyncIssue(batch, redmineManager, onSuccess, onError);
     } catch (Exception e) {
       TraceBackService.trace(e, "", batch.getId());
     }

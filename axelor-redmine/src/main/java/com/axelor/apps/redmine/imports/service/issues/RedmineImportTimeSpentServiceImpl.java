@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.imports.service;
+package com.axelor.apps.redmine.imports.service.issues;
 
 import com.axelor.apps.base.db.Batch;
 import com.axelor.apps.base.db.Product;
@@ -29,8 +29,8 @@ import com.axelor.apps.hr.service.timesheet.TimesheetService;
 import com.axelor.apps.project.db.Project;
 import com.axelor.apps.project.db.repo.ProjectCategoryRepository;
 import com.axelor.apps.project.db.repo.ProjectRepository;
+import com.axelor.apps.redmine.imports.service.RedmineImportService;
 import com.axelor.apps.redmine.message.IMessage;
-import com.axelor.apps.redmine.sync.service.RedmineSyncService;
 import com.axelor.auth.db.User;
 import com.axelor.auth.db.repo.UserRepository;
 import com.axelor.exception.service.TraceBackService;
@@ -59,7 +59,7 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RedmineImportTimeSpentServiceImpl extends RedmineSyncService
+public class RedmineImportTimeSpentServiceImpl extends RedmineImportService
     implements RedmineImportTimeSpentService {
 
   protected TimesheetLineRepository timesheetLineRepo;
@@ -119,8 +119,6 @@ public class RedmineImportTimeSpentServiceImpl extends RedmineSyncService
           if (project == null) {
             setErrorLog(
                 I18n.get(IMessage.REDMINE_SYNC_TIMESHEET_LINE_ERROR),
-                I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-                null,
                 redmineTimeEntry.getId().toString(),
                 I18n.get(IMessage.REDMINE_SYNC_PROJECT_NOT_FOUND));
 
@@ -137,8 +135,6 @@ public class RedmineImportTimeSpentServiceImpl extends RedmineSyncService
         } else {
           setErrorLog(
               I18n.get(IMessage.REDMINE_SYNC_TIMESHEET_LINE_ERROR),
-              I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-              null,
               redmineTimeEntry.getId().toString(),
               I18n.get(IMessage.REDMINE_SYNC_TEAM_TASK_NOT_FOUND));
 
@@ -153,8 +149,6 @@ public class RedmineImportTimeSpentServiceImpl extends RedmineSyncService
         if (product == null) {
           setErrorLog(
               I18n.get(IMessage.REDMINE_SYNC_TIMESHEET_LINE_ERROR),
-              I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-              null,
               redmineTimeEntry.getId().toString(),
               I18n.get(IMessage.REDMINE_SYNC_CUSTOM_FIELD_PRODUCT_NOT_FOUND));
 

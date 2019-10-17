@@ -42,11 +42,11 @@ public class RedmineBatchService extends AbstractBatchService {
     RedmineBatch redmineBatch = (RedmineBatch) batchModel;
 
     switch (redmineBatch.getRedmineActionSelect()) {
-      case RedmineBatchRepository.ACTION_SELECT_SYNC_PROJECT:
-        batch = redmineSyncProjects(redmineBatch);
+      case RedmineBatchRepository.ACTION_SELECT_IMPORT_PROJECT:
+        batch = redmineImportProjects(redmineBatch);
         break;
-      case RedmineBatchRepository.ACTION_SELECT_SYNC_ISSUE:
-        batch = redmineSyncIssues(redmineBatch);
+      case RedmineBatchRepository.ACTION_SELECT_IMPORT_ISSUE:
+        batch = redmineImportIssues(redmineBatch);
         break;
       default:
         throw new AxelorException(
@@ -59,11 +59,11 @@ public class RedmineBatchService extends AbstractBatchService {
     return batch;
   }
 
-  public Batch redmineSyncProjects(RedmineBatch redmineBatch) {
-    return Beans.get(BatchSyncAllRedmineProject.class).run(redmineBatch);
+  public Batch redmineImportProjects(RedmineBatch redmineBatch) {
+    return Beans.get(BatchImportAllRedmineProject.class).run(redmineBatch);
   }
 
-  public Batch redmineSyncIssues(RedmineBatch redmineBatch) {
-    return Beans.get(BatchSyncAllRedmineIssue.class).run(redmineBatch);
+  public Batch redmineImportIssues(RedmineBatch redmineBatch) {
+    return Beans.get(BatchImportAllRedmineIssue.class).run(redmineBatch);
   }
 }

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.log.service;
+package com.axelor.apps.redmine.imports.service.log;
 
 import com.axelor.exception.service.TraceBackService;
 import com.axelor.meta.MetaFiles;
@@ -45,10 +45,8 @@ public class RedmineErrorLogService {
   public static final String EXCEL_FILE_EXTENSION = ".xlsx";
 
   public static final String HEADER_COL1 = "Object";
-  public static final String HEADER_COL2 = "Import/Export";
-  public static final String HEADER_COL3 = "OS Ref.";
-  public static final String HEADER_COL4 = "Redmine Ref.";
-  public static final String HEADER_COL5 = "Error";
+  public static final String HEADER_COL2 = "Redmine Ref.";
+  public static final String HEADER_COL3 = "Error";
 
   private File excelFile;
 
@@ -59,8 +57,7 @@ public class RedmineErrorLogService {
     XSSFWorkbook workbook = new XSSFWorkbook();
     XSSFSheet sheet = workbook.createSheet(EXCEL_SHEET_NAME);
     Map<String, Object[]> errorData = new TreeMap<String, Object[]>();
-    errorData.put(
-        "1", new Object[] {HEADER_COL1, HEADER_COL2, HEADER_COL3, HEADER_COL4, HEADER_COL5});
+    errorData.put("1", new Object[] {HEADER_COL1, HEADER_COL2, HEADER_COL3});
 
     int i = 2;
     for (Object[] object : errorObjList) {

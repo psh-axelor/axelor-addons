@@ -19,7 +19,7 @@ package com.axelor.apps.redmine.message;
 
 public interface IMessage {
 
-  static final String BATCH_SYNC_SUCCESS = /*$$(*/ "Redmine sync completed" /*)*/;
+  static final String BATCH_SYNC_SUCCESS = /*$$(*/ "Redmine import completed" /*)*/;
 
   static final String REDMINE_AUTHENTICATION_1 = /*$$(*/
       "URI and API Access Key should not be empty" /*)*/;

@@ -15,70 +15,60 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.project.sync;
+package com.axelor.apps.redmine.imports.service;
 
 import com.axelor.apps.base.db.Batch;
 import com.axelor.apps.base.db.repo.BatchRepository;
-import com.axelor.apps.project.db.Project;
-import com.axelor.apps.redmine.db.RedmineSyncMapping;
-import com.axelor.apps.redmine.db.repo.RedmineSyncMappingRepository;
-import com.axelor.apps.redmine.exports.service.RedmineExportProjectService;
-import com.axelor.apps.redmine.imports.service.RedmineImportProjectService;
-import com.axelor.apps.redmine.log.service.RedmineErrorLogService;
-import com.axelor.apps.redmine.sync.service.RedmineSyncService;
+import com.axelor.apps.redmine.db.RedmineImportMapping;
+import com.axelor.apps.redmine.db.repo.RedmineImportMappingRepository;
+import com.axelor.apps.redmine.imports.service.log.RedmineErrorLogService;
+import com.axelor.apps.redmine.imports.service.projects.RedmineImportProjectService;
 import com.axelor.meta.db.MetaFile;
 import com.google.inject.Inject;
 import com.taskadapter.redmineapi.RedmineManager;
 import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class RedmineSyncProjectServiceImpl implements RedmineSyncProjectService {
+public class RedmineProjectServiceImpl implements RedmineProjectService {
 
-  protected RedmineExportProjectService redmineExportProjectService;
   protected RedmineImportProjectService redmineImportProjectService;
-  protected RedmineProjectFetchExportDataService redmineProjectFetchExportDataService;
-  protected RedmineProjectFetchImportDataService redmineProjectFetchImportDataService;
+  protected RedmineProjectFetchDataService redmineProjectFetchImportDataService;
   protected RedmineErrorLogService redmineErrorLogService;
   protected BatchRepository batchRepo;
-  protected RedmineSyncMappingRepository redmineSyncMappingRepository;
+  protected RedmineImportMappingRepository redmineImportMappingRepository;
 
   @Inject
-  public RedmineSyncProjectServiceImpl(
-      RedmineExportProjectService redmineExportProjectService,
+  public RedmineProjectServiceImpl(
       RedmineImportProjectService redmineImportProjectService,
-      RedmineProjectFetchExportDataService redmineProjectFetchExportDataService,
-      RedmineProjectFetchImportDataService redmineProjectFetchImportDataService,
+      RedmineProjectFetchDataService redmineProjectFetchImportDataService,
       RedmineErrorLogService redmineErrorLogService,
       BatchRepository batchRepo,
-      RedmineSyncMappingRepository redmineSyncMappingRepository) {
+      RedmineImportMappingRepository redmineImportMappingRepository) {
 
-    this.redmineExportProjectService = redmineExportProjectService;
     this.redmineImportProjectService = redmineImportProjectService;
-    this.redmineProjectFetchExportDataService = redmineProjectFetchExportDataService;
     this.redmineProjectFetchImportDataService = redmineProjectFetchImportDataService;
     this.redmineErrorLogService = redmineErrorLogService;
     this.batchRepo = batchRepo;
-    this.redmineSyncMappingRepository = redmineSyncMappingRepository;
+    this.redmineImportMappingRepository = redmineImportMappingRepository;
   }
 
   @Override
-  public void redmineSyncProject(
+  public void redmineImportProject(
       Batch batch,
       RedmineManager redmineManager,
       Consumer<Object> onSuccess,
       Consumer<Throwable> onError) {
 
-    RedmineSyncService.result = "";
+    RedmineImportService.result = "";
 
-    // LOG REDMINE SYNC ERROR DATA
+    // LOG REDMINE IMPORT ERROR DATA
 
     List<Object[]> errorObjList = new ArrayList<Object[]>();
 
-    // FETCH EXPORT AND IMPORT DATA
+    // FETCH IMPORT DATA
 
     Batch lastBatch =
         batchRepo
@@ -90,12 +80,8 @@ public class RedmineSyncProjectServiceImpl implements RedmineSyncProjectService 
             .order("-updatedOn")
             .fetchOne();
 
-    ZonedDateTime lastBatchEndDate = lastBatch != null ? lastBatch.getEndDate() : null;
     LocalDateTime lastBatchUpdatedOn = lastBatch != null ? lastBatch.getUpdatedOn() : null;
 
-    List<Project> exportProjectList =
-        redmineProjectFetchExportDataService.fetchExportData(
-            lastBatchEndDate != null ? lastBatchEndDate.toLocalDateTime() : null);
     List<com.taskadapter.redmineapi.bean.Project> importProjectList =
         redmineProjectFetchImportDataService.fetchImportData(redmineManager);
 
@@ -116,18 +102,13 @@ public class RedmineSyncProjectServiceImpl implements RedmineSyncProjectService 
     // MAPPING CONFIG FOR SELECTIONS
 
     HashMap<String, String> importFieldMap = new HashMap<String, String>();
-    HashMap<String, String> exportFieldMap = new HashMap<String, String>();
 
-    List<RedmineSyncMapping> redmineSyncMappingList = redmineSyncMappingRepository.all().fetch();
+    List<RedmineImportMapping> redmineImportMappingList =
+        redmineImportMappingRepository.all().fetch();
 
-    for (RedmineSyncMapping redmineSyncMapping : redmineSyncMappingList) {
-      importFieldMap.put(redmineSyncMapping.getRedmineValue(), redmineSyncMapping.getOsValue());
-      exportFieldMap.put(redmineSyncMapping.getOsValue(), redmineSyncMapping.getRedmineValue());
+    for (RedmineImportMapping redmineImportMapping : redmineImportMappingList) {
+      importFieldMap.put(redmineImportMapping.getRedmineValue(), redmineImportMapping.getOsValue());
     }
-
-    // EXPORT PROCESS
-
-    redmineExportProjectService.exportProject(exportProjectList, paramsMap, exportFieldMap);
 
     // IMPORT PROCESS
 

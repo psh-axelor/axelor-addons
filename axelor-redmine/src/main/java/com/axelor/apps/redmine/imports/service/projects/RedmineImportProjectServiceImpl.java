@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.imports.service;
+package com.axelor.apps.redmine.imports.service.projects;
 
 import com.axelor.apps.base.db.Batch;
 import com.axelor.apps.base.db.Company;
@@ -26,8 +26,8 @@ import com.axelor.apps.project.db.Project;
 import com.axelor.apps.project.db.ProjectCategory;
 import com.axelor.apps.project.db.repo.ProjectCategoryRepository;
 import com.axelor.apps.project.db.repo.ProjectRepository;
+import com.axelor.apps.redmine.imports.service.RedmineImportService;
 import com.axelor.apps.redmine.message.IMessage;
-import com.axelor.apps.redmine.sync.service.RedmineSyncService;
 import com.axelor.auth.db.User;
 import com.axelor.auth.db.repo.UserRepository;
 import com.axelor.exception.service.TraceBackService;
@@ -54,7 +54,7 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RedmineImportProjectServiceImpl extends RedmineSyncService
+public class RedmineImportProjectServiceImpl extends RedmineImportService
     implements RedmineImportProjectService {
 
   protected AppRedmineRepository appRedmineRepo;
@@ -206,8 +206,6 @@ public class RedmineImportProjectServiceImpl extends RedmineSyncService
     } else {
       setErrorLog(
           I18n.get(IMessage.REDMINE_SYNC_PROJECT_ERROR),
-          I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-          null,
           redmineProject.getIdentifier(),
           I18n.get(IMessage.REDMINE_SYNC_CUSTOM_FIELD_CUSTOMER_CODE_NOT_FOUND));
     }
@@ -223,8 +221,6 @@ public class RedmineImportProjectServiceImpl extends RedmineSyncService
         if (project.getParentProject() == null) {
           setErrorLog(
               I18n.get(IMessage.REDMINE_SYNC_PROJECT_ERROR),
-              I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-              null,
               redmineProject.getIdentifier(),
               I18n.get(IMessage.REDMINE_SYNC_PARENT_PROJECT_NOT_FOUND));
         }
@@ -292,8 +288,6 @@ public class RedmineImportProjectServiceImpl extends RedmineSyncService
       // Error if invoicing type not found
       setErrorLog(
           I18n.get(IMessage.REDMINE_SYNC_PROJECT_ERROR),
-          I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-          null,
           redmineProject.getIdentifier(),
           I18n.get(IMessage.REDMINE_SYNC_CUSTOM_FIELD_INVOICING_TYPE_NOT_FOUND));
     }

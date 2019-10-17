@@ -15,27 +15,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.service.batch;
+package com.axelor.apps.redmine.imports.service;
 
-import com.axelor.apps.base.service.administration.AbstractBatch;
-import com.axelor.apps.redmine.service.RedmineService;
-import com.axelor.apps.redmine.sync.service.RedmineSyncService;
-import com.google.inject.Inject;
+import com.axelor.apps.base.db.Batch;
+import com.taskadapter.redmineapi.RedmineManager;
+import java.util.function.Consumer;
 
-public class BatchSyncAllRedmineIssue extends AbstractBatch {
+public interface RedmineIssueService {
 
-  @Inject private RedmineService redmineService;
-
-  @Override
-  protected void process() {
-
-    redmineService.redmineSyncIssues(batch, ticket -> incrementDone(), error -> incrementAnomaly());
-  }
-
-  @Override
-  protected void stop() {
-    super.stop();
-    String comments = RedmineSyncService.result;
-    addComment(comments);
-  }
+  void redmineImportIssue(
+      Batch batch,
+      RedmineManager redmineManager,
+      Consumer<Object> onSuccess,
+      Consumer<Throwable> onError);
 }

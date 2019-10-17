@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.imports.service;
+package com.axelor.apps.redmine.imports.service.issues;
 
 import com.axelor.apps.base.db.Batch;
 import com.axelor.apps.base.db.Product;
@@ -26,9 +26,9 @@ import com.axelor.apps.project.db.Project;
 import com.axelor.apps.project.db.ProjectCategory;
 import com.axelor.apps.project.db.repo.ProjectCategoryRepository;
 import com.axelor.apps.project.db.repo.ProjectRepository;
-import com.axelor.apps.redmine.db.repo.RedmineSyncMappingRepository;
+import com.axelor.apps.redmine.db.repo.RedmineImportMappingRepository;
+import com.axelor.apps.redmine.imports.service.RedmineImportService;
 import com.axelor.apps.redmine.message.IMessage;
-import com.axelor.apps.redmine.sync.service.RedmineSyncService;
 import com.axelor.auth.db.repo.UserRepository;
 import com.axelor.db.JPA;
 import com.axelor.exception.service.TraceBackService;
@@ -58,10 +58,10 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RedmineImportIssueServiceImpl extends RedmineSyncService
+public class RedmineImportIssueServiceImpl extends RedmineImportService
     implements RedmineImportIssueService {
 
-  protected RedmineSyncMappingRepository redmineSyncMappingRepository;
+  protected RedmineImportMappingRepository redmineImportMappingRepository;
 
   @Inject
   public RedmineImportIssueServiceImpl(
@@ -71,10 +71,10 @@ public class RedmineImportIssueServiceImpl extends RedmineSyncService
       TeamTaskRepository teamTaskRepo,
       ProjectCategoryRepository projectCategoryRepo,
       PartnerRepository partnerRepo,
-      RedmineSyncMappingRepository redmineSyncMappingRepository) {
+      RedmineImportMappingRepository redmineImportMappingRepository) {
 
     super(userRepo, projectRepo, productRepo, teamTaskRepo, projectCategoryRepo, partnerRepo);
-    this.redmineSyncMappingRepository = redmineSyncMappingRepository;
+    this.redmineImportMappingRepository = redmineImportMappingRepository;
   }
 
   Logger LOG = LoggerFactory.getLogger(getClass());
@@ -129,8 +129,6 @@ public class RedmineImportIssueServiceImpl extends RedmineSyncService
         if (product == null) {
           setErrorLog(
               I18n.get(IMessage.REDMINE_SYNC_TEAMTASK_ERROR),
-              I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-              null,
               redmineIssue.getId().toString(),
               I18n.get(IMessage.REDMINE_SYNC_CUSTOM_FIELD_PRODUCT_NOT_FOUND));
 
@@ -145,8 +143,6 @@ public class RedmineImportIssueServiceImpl extends RedmineSyncService
           if (parentTask == null) {
             setErrorLog(
                 I18n.get(IMessage.REDMINE_SYNC_TEAMTASK_ERROR),
-                I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-                null,
                 redmineIssue.getId().toString(),
                 I18n.get(IMessage.REDMINE_SYNC_PARENT_TASK_NOT_FOUND));
 
@@ -162,8 +158,6 @@ public class RedmineImportIssueServiceImpl extends RedmineSyncService
           if (project == null) {
             setErrorLog(
                 I18n.get(IMessage.REDMINE_SYNC_TEAMTASK_ERROR),
-                I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-                null,
                 redmineIssue.getId().toString(),
                 I18n.get(IMessage.REDMINE_SYNC_PROJECT_NOT_FOUND));
 
@@ -182,8 +176,6 @@ public class RedmineImportIssueServiceImpl extends RedmineSyncService
         if (projectCategory == null) {
           setErrorLog(
               I18n.get(IMessage.REDMINE_SYNC_TEAMTASK_ERROR),
-              I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-              null,
               redmineIssue.getId().toString(),
               I18n.get(IMessage.REDMINE_SYNC_PROJECT_CATEGORY_NOT_FOUND));
 
@@ -244,7 +236,7 @@ public class RedmineImportIssueServiceImpl extends RedmineSyncService
     this.setTeamTaskFields(teamTask, redmineIssue);
 
     try {
-      teamTask.addOsbatchSetItem(batch);
+      teamTask.addBatchSetItem(batch);
       teamTaskRepo.save(teamTask);
       onSuccess.accept(teamTask);
       success++;
@@ -318,8 +310,6 @@ public class RedmineImportIssueServiceImpl extends RedmineSyncService
         teamTask.setStatus(TeamTaskRepository.TEAM_TASK_DEFAULT_STATUS);
         setErrorLog(
             I18n.get(IMessage.REDMINE_SYNC_TEAMTASK_ERROR),
-            I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-            null,
             redmineIssue.getId().toString(),
             I18n.get(IMessage.REDMINE_SYNC_IMPORT_WITH_DEFAULT_STATUS));
       }
@@ -333,8 +323,6 @@ public class RedmineImportIssueServiceImpl extends RedmineSyncService
         teamTask.setPriority(TeamTaskRepository.TEAM_TASK_DEFAULT_PRIORITY);
         setErrorLog(
             I18n.get(IMessage.REDMINE_SYNC_TEAMTASK_ERROR),
-            I18n.get(IMessage.REDMINE_SYNC_IMPORT_ERROR),
-            null,
             redmineIssue.getId().toString(),
             I18n.get(IMessage.REDMINE_SYNC_IMPORT_WITH_DEFAULT_PRIORITY));
       }

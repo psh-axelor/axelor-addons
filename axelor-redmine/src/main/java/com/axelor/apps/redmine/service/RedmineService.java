@@ -22,9 +22,9 @@ import java.util.function.Consumer;
 
 public interface RedmineService {
 
-  public void redmineSyncProjects(
+  public void redmineImportProjects(
       Batch batch, Consumer<Object> onSuccess, Consumer<Throwable> onError);
 
-  public void redmineSyncIssues(
+  public void redmineImportIssues(
       Batch batch, Consumer<Object> onSuccess, Consumer<Throwable> onError);
 }

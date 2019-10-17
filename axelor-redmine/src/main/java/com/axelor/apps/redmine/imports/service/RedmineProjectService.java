@@ -17,15 +17,15 @@
  */
 package com.axelor.apps.redmine.imports.service;
 
-import com.taskadapter.redmineapi.bean.Issue;
-import java.util.HashMap;
-import java.util.List;
+import com.axelor.apps.base.db.Batch;
+import com.taskadapter.redmineapi.RedmineManager;
+import java.util.function.Consumer;
 
-public interface RedmineImportIssueService {
+public interface RedmineProjectService {
 
-  void importIssue(
-      List<Issue> importIssueList,
-      HashMap<String, Object> paramsMap,
-      HashMap<String, String> importSelectionMap,
-      HashMap<String, String> importFieldMap);
+  void redmineImportProject(
+      Batch batch,
+      RedmineManager redmineManager,
+      Consumer<Object> onSuccess,
+      Consumer<Throwable> onError);
 }

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.sync.service;
+package com.axelor.apps.redmine.imports.service;
 
 import com.axelor.apps.base.db.Batch;
 import com.axelor.apps.base.db.Partner;
@@ -39,9 +39,6 @@ import com.taskadapter.redmineapi.RedmineException;
 import com.taskadapter.redmineapi.TimeEntryManager;
 import com.taskadapter.redmineapi.UserManager;
 import com.taskadapter.redmineapi.bean.CustomField;
-import com.taskadapter.redmineapi.bean.Issue;
-import com.taskadapter.redmineapi.bean.Tracker;
-import com.taskadapter.redmineapi.bean.Version;
 import com.taskadapter.redmineapi.internal.Transport;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -54,7 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class RedmineSyncService {
+public class RedmineImportService {
 
   protected UserRepository userRepo;
   protected ProjectRepository projectRepo;
@@ -64,7 +61,7 @@ public class RedmineSyncService {
   protected PartnerRepository partnerRepo;
 
   @Inject
-  public RedmineSyncService(
+  public RedmineImportService(
       UserRepository userRepo,
       ProjectRepository projectRepo,
       ProductRepository productRepo,
@@ -94,11 +91,11 @@ public class RedmineSyncService {
   protected List<Object[]> errorObjList;
   protected Map<String, Object> redmineCustomFieldsMap;
   protected LocalDateTime lastBatchUpdatedOn;
-
   protected HashMap<String, String> selectionMap;
   protected HashMap<String, String> fieldMap;
 
   // IMPORT VARIABLES
+
   public static final Integer REDMINE_PROJECT_STATUS_CLOSED = 5;
 
   private Map<Integer, User> userMap = new HashMap<>();
@@ -108,19 +105,6 @@ public class RedmineSyncService {
   protected HashMap<Integer, TeamTask> issueMap = new HashMap<>();
   protected HashMap<String, ProjectCategory> projectCategoryMap = new HashMap<>();
   protected HashMap<String, Partner> partnerMap = new HashMap<>();
-
-  // EXPORT VARIABLES
-  protected HashMap<Integer, com.taskadapter.redmineapi.bean.Project> redmineProjectMap =
-      new HashMap<>();
-  protected HashMap<Integer, Issue> redmineIssueMap = new HashMap<>();
-  protected HashMap<String, com.taskadapter.redmineapi.bean.User> redmineUserMailMap =
-      new HashMap<>();
-  protected HashMap<String, Tracker> redmineTrackerMap = new HashMap<>();
-  protected HashMap<String, Version> redmineVersionMap = new HashMap<>();
-
-  public static final String REDMINE_SERVER_404_NOT_FOUND =
-      "Server returned '404 not found'. response body:";
-  public static final String REDMINE_ISSUE_ASSIGNEE_INVALID = "Assignee is invalid\n";
 
   // IMPORT SERVICE METHODS
 
@@ -286,110 +270,8 @@ public class RedmineSyncService {
     return partner;
   }
 
-  // EXPORT SERVICE METHODS
+  public void setErrorLog(String object, String redmineRef, String message) {
 
-  public com.taskadapter.redmineapi.bean.User findRedmineUserByEmail(String mail) {
-
-    if (redmineUserMailMap.containsKey(mail)) {
-      return redmineUserMailMap.get(mail);
-    }
-
-    try {
-      Map<String, String> params = new HashMap<String, String>();
-      params.put("name", mail);
-      List<com.taskadapter.redmineapi.bean.User> redmineUserList =
-          redmineUserManager.getUsers(params).getResults();
-      com.taskadapter.redmineapi.bean.User redmineUser =
-          redmineUserList != null && !redmineUserList.isEmpty() ? redmineUserList.get(0) : null;
-
-      redmineUserMailMap.put(mail, redmineUser);
-
-      return redmineUser;
-    } catch (RedmineException e) {
-      TraceBackService.trace(e, "", batch.getId());
-    }
-
-    return null;
-  }
-
-  public void setRedmineCustomFieldValues(Collection<CustomField> customFields) {
-
-    if (customFields != null && !customFields.isEmpty()) {
-
-      for (CustomField customField : customFields) {
-
-        if (redmineCustomFieldsMap != null
-            && !redmineCustomFieldsMap.isEmpty()
-            && redmineCustomFieldsMap.get(customField.getName()) != null) {
-          customField.setValue(redmineCustomFieldsMap.get(customField.getName()).toString());
-        }
-      }
-    }
-  }
-
-  public com.taskadapter.redmineapi.bean.Project findRedmineProject(Integer redmineId)
-      throws RedmineException {
-
-    if (redmineProjectMap.containsKey(redmineId)) {
-      return redmineProjectMap.get(redmineId);
-    }
-
-    com.taskadapter.redmineapi.bean.Project redmineProject =
-        redmineProjectManager.getProjectById(redmineId);
-    redmineProjectMap.put(redmineId, redmineProject);
-
-    return redmineProject;
-  }
-
-  public Issue findRedmineIssue(Integer redmineId) throws RedmineException {
-
-    if (redmineIssueMap.containsKey(redmineId)) {
-      return redmineIssueMap.get(redmineId);
-    }
-
-    Issue redmineIssue = redmineIssueManager.getIssueById(redmineId);
-    redmineIssueMap.put(redmineId, redmineIssue);
-
-    return redmineIssue;
-  }
-
-  public Tracker findRedmineTracker(String name) throws RedmineException {
-
-    if (redmineTrackerMap.containsKey(name)) {
-      return redmineTrackerMap.get(name);
-    }
-
-    List<Tracker> trackers = redmineIssueManager.getTrackers();
-
-    for (Tracker tracker : trackers) {
-      redmineTrackerMap.put(tracker.getName(), tracker);
-    }
-
-    return redmineTrackerMap.get(name);
-  }
-
-  public Version findRedmineVersion(String versionName, Integer projectId) throws RedmineException {
-
-    String key = versionName + projectId.toString();
-
-    if (redmineVersionMap.containsKey(key)) {
-      return redmineVersionMap.get(key);
-    }
-
-    List<Version> redmineVersionList = redmineProjectManager.getVersions(projectId);
-
-    for (Version version : redmineVersionList) {
-      redmineVersionMap.put(version.getName() + version.getProjectId().toString(), version);
-    }
-
-    return redmineVersionMap.get(key);
-  }
-
-  // COMMON METHODS
-
-  public void setErrorLog(
-      String object, String operation, String osRef, String redmineRef, String message) {
-
-    errorObjList.add(new Object[] {object, operation, osRef, redmineRef, message});
+    errorObjList.add(new Object[] {object, redmineRef, message});
   }
 }

@@ -15,17 +15,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.project.sync;
+package com.axelor.apps.redmine.imports.service.issues;
 
-import com.axelor.apps.base.db.Batch;
-import com.taskadapter.redmineapi.RedmineManager;
-import java.util.function.Consumer;
+import com.taskadapter.redmineapi.bean.TimeEntry;
+import java.util.HashMap;
+import java.util.List;
 
-public interface RedmineSyncProjectService {
+public interface RedmineImportTimeSpentService {
 
-  void redmineSyncProject(
-      Batch batch,
-      RedmineManager redmineManager,
-      Consumer<Object> onSuccess,
-      Consumer<Throwable> onError);
+  void importTimeSpent(List<TimeEntry> importTimeEntryList, HashMap<String, Object> paramsMap);
 }

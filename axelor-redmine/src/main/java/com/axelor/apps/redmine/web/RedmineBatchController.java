@@ -41,12 +41,12 @@ public class RedmineBatchController {
   @Inject private RedmineBatchRepository redmineBatchRepo;
   @Inject private BatchRepository batchRepo;
 
-  public void redmineSyncProjects(ActionRequest request, ActionResponse response) {
+  public void redmineImportProjects(ActionRequest request, ActionResponse response) {
 
     RedmineBatch redmineBatch = request.getContext().asType(RedmineBatch.class);
     redmineBatch = redmineBatchRepo.find(redmineBatch.getId());
 
-    Batch batch = Beans.get(RedmineBatchService.class).redmineSyncProjects(redmineBatch);
+    Batch batch = Beans.get(RedmineBatchService.class).redmineImportProjects(redmineBatch);
 
     if (batch != null) {
       response.setFlash(IMessage.BATCH_SYNC_SUCCESS);
@@ -55,12 +55,12 @@ public class RedmineBatchController {
     response.setReload(true);
   }
 
-  public void redmineSyncIssues(ActionRequest request, ActionResponse response) {
+  public void redmineImportIssues(ActionRequest request, ActionResponse response) {
 
     RedmineBatch redmineBatch = request.getContext().asType(RedmineBatch.class);
     redmineBatch = redmineBatchRepo.find(redmineBatch.getId());
 
-    Batch batch = Beans.get(RedmineBatchService.class).redmineSyncIssues(redmineBatch);
+    Batch batch = Beans.get(RedmineBatchService.class).redmineImportIssues(redmineBatch);
 
     if (batch != null) {
       response.setFlash(IMessage.BATCH_SYNC_SUCCESS);
@@ -104,27 +104,6 @@ public class RedmineBatchController {
               .model(TimesheetLine.class.getName())
               .add("grid", "timesheet-line-grid")
               .add("form", "timesheet-line-form")
-              .domain("self.id in (" + Joiner.on(",").join(idList) + ")")
-              .map());
-
-      response.setCanClose(true);
-    }
-  }
-
-  public void updatedIssuesInRedmine(ActionRequest request, ActionResponse response) {
-
-    Batch batch = request.getContext().asType(Batch.class);
-    batch = batchRepo.find(batch.getId());
-
-    List<Long> idList = new ArrayList<Long>();
-    batch.getUpdatedIssuesInRedmine().forEach(t -> idList.add(t.getId()));
-
-    if (!idList.isEmpty()) {
-      response.setView(
-          ActionView.define(I18n.get("Teamtasks"))
-              .model(TeamTask.class.getName())
-              .add("grid", "team-task-grid")
-              .add("form", "team-task-form")
               .domain("self.id in (" + Joiner.on(",").join(idList) + ")")
               .map());
 

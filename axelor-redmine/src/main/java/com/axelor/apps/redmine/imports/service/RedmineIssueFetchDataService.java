@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.issue.sync;
+package com.axelor.apps.redmine.imports.service;
 
 import com.taskadapter.redmineapi.Params;
 import com.taskadapter.redmineapi.RedmineException;
@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class RedmineIssueFetchImportDataService {
+public class RedmineIssueFetchDataService {
 
   private ZonedDateTime lastBatchEndDate;
   private RedmineManager redmineManager;

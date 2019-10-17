@@ -15,24 +15,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.axelor.apps.redmine.issue.sync;
+package com.axelor.apps.redmine.imports.service;
 
 import com.axelor.apps.base.db.Batch;
 import com.axelor.apps.base.db.repo.BatchRepository;
-import com.axelor.apps.hr.db.TimesheetLine;
-import com.axelor.apps.redmine.db.RedmineSyncMapping;
-import com.axelor.apps.redmine.db.repo.RedmineSyncMappingRepository;
-import com.axelor.apps.redmine.exports.service.RedmineExportIssueService;
-import com.axelor.apps.redmine.exports.service.RedmineExportTimeSpentService;
-import com.axelor.apps.redmine.imports.service.RedmineImportIssueService;
-import com.axelor.apps.redmine.imports.service.RedmineImportTimeSpentService;
-import com.axelor.apps.redmine.log.service.RedmineErrorLogService;
-import com.axelor.apps.redmine.sync.service.RedmineSyncService;
+import com.axelor.apps.redmine.db.RedmineImportMapping;
+import com.axelor.apps.redmine.db.repo.RedmineImportMappingRepository;
+import com.axelor.apps.redmine.imports.service.issues.RedmineImportIssueService;
+import com.axelor.apps.redmine.imports.service.issues.RedmineImportTimeSpentService;
+import com.axelor.apps.redmine.imports.service.log.RedmineErrorLogService;
 import com.axelor.i18n.I18n;
 import com.axelor.meta.MetaStore;
 import com.axelor.meta.db.MetaFile;
 import com.axelor.meta.schema.views.Selection.Option;
-import com.axelor.team.db.TeamTask;
 import com.google.inject.Inject;
 import com.taskadapter.redmineapi.RedmineException;
 import com.taskadapter.redmineapi.RedmineManager;
@@ -48,56 +43,47 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
-public class RedmineSyncIssueServiceImpl implements RedmineSyncIssueService {
+public class RedmineIssueServiceImpl implements RedmineIssueService {
 
-  protected RedmineExportIssueService redmineExportIssueService;
-  protected RedmineExportTimeSpentService redmineExportTimeSpentService;
   protected RedmineImportIssueService redmineImportIssueService;
   protected RedmineImportTimeSpentService redmineImportTimeSpentService;
-  protected RedmineIssueFetchExportDataService redmineIssueFetchExportDataService;
-  protected RedmineIssueFetchImportDataService redmineIssueFetchImportDataService;
+  protected RedmineIssueFetchDataService redmineIssueFetchImportDataService;
   protected RedmineErrorLogService redmineErrorLogService;
   protected BatchRepository batchRepo;
-  protected RedmineSyncMappingRepository redmineSyncMappingRepository;
+  protected RedmineImportMappingRepository redmineImportMappingRepository;
 
   @Inject
-  public RedmineSyncIssueServiceImpl(
-      RedmineExportIssueService redmineExportIssueService,
-      RedmineExportTimeSpentService redmineExportTimeSpentService,
+  public RedmineIssueServiceImpl(
       RedmineImportIssueService redmineImportIssueService,
       RedmineImportTimeSpentService redmineImportTimeSpentService,
-      RedmineIssueFetchExportDataService redmineIssueFetchExportDataService,
-      RedmineIssueFetchImportDataService redmineIssueFetchImportDataService,
+      RedmineIssueFetchDataService redmineIssueFetchImportDataService,
       RedmineErrorLogService redmineErrorLogService,
       BatchRepository batchRepo,
-      RedmineSyncMappingRepository redmineSyncMappingRepository) {
+      RedmineImportMappingRepository redmineImportMappingRepository) {
 
-    this.redmineExportIssueService = redmineExportIssueService;
-    this.redmineExportTimeSpentService = redmineExportTimeSpentService;
     this.redmineImportIssueService = redmineImportIssueService;
     this.redmineImportTimeSpentService = redmineImportTimeSpentService;
-    this.redmineIssueFetchExportDataService = redmineIssueFetchExportDataService;
     this.redmineIssueFetchImportDataService = redmineIssueFetchImportDataService;
     this.redmineErrorLogService = redmineErrorLogService;
     this.batchRepo = batchRepo;
-    this.redmineSyncMappingRepository = redmineSyncMappingRepository;
+    this.redmineImportMappingRepository = redmineImportMappingRepository;
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public void redmineSyncIssue(
+  public void redmineImportIssue(
       Batch batch,
       RedmineManager redmineManager,
       Consumer<Object> onSuccess,
       Consumer<Throwable> onError) {
 
-    RedmineSyncService.result = "";
+    RedmineImportService.result = "";
 
-    // LOG REDMINE SYNC ERROR DATA
+    // LOG REDMINE IMPORT ERROR DATA
 
     List<Object[]> errorObjList = new ArrayList<Object[]>();
 
-    // FETCH EXPORT AND IMPORT DATA
+    // FETCH IMPORT DATA
 
     Batch lastBatch =
         batchRepo
@@ -111,10 +97,6 @@ public class RedmineSyncIssueServiceImpl implements RedmineSyncIssueService {
 
     ZonedDateTime lastBatchEndDate = lastBatch != null ? lastBatch.getEndDate() : null;
     LocalDateTime lastBatchUpdatedOn = lastBatch != null ? lastBatch.getUpdatedOn() : null;
-
-    Map<String, List<?>> exportDataMap =
-        redmineIssueFetchExportDataService.fetchExportData(
-            lastBatchEndDate != null ? lastBatchEndDate.toLocalDateTime() : null);
 
     Map<String, List<?>> importDataMap = new HashMap<>();
     try {
@@ -143,8 +125,6 @@ public class RedmineSyncIssueServiceImpl implements RedmineSyncIssueService {
 
     HashMap<String, String> importSelectionMap = new HashMap<String, String>();
     HashMap<String, String> importFieldMap = new HashMap<String, String>();
-    HashMap<String, String> exportSelectionMap = new HashMap<String, String>();
-    HashMap<String, String> exportFieldMap = new HashMap<String, String>();
 
     List<Option> selectionList = new ArrayList<Option>();
     selectionList.addAll(MetaStore.getSelectionList("team.task.status"));
@@ -156,25 +136,14 @@ public class RedmineSyncIssueServiceImpl implements RedmineSyncIssueService {
     for (Option option : selectionList) {
       importSelectionMap.put(fr.getString(option.getTitle()), option.getValue());
       importSelectionMap.put(en.getString(option.getTitle()), option.getValue());
-      exportSelectionMap.put(option.getValue(), en.getString(option.getTitle()));
     }
 
-    List<RedmineSyncMapping> redmineSyncMappingList = redmineSyncMappingRepository.all().fetch();
+    List<RedmineImportMapping> redmineImportMappingList =
+        redmineImportMappingRepository.all().fetch();
 
-    for (RedmineSyncMapping redmineSyncMapping : redmineSyncMappingList) {
-      importFieldMap.put(redmineSyncMapping.getRedmineValue(), redmineSyncMapping.getOsValue());
-      exportFieldMap.put(redmineSyncMapping.getOsValue(), redmineSyncMapping.getRedmineValue());
+    for (RedmineImportMapping redmineImportMapping : redmineImportMappingList) {
+      importFieldMap.put(redmineImportMapping.getRedmineValue(), redmineImportMapping.getOsValue());
     }
-
-    // EXPORT PROCESS
-
-    redmineExportIssueService.exportIssue(
-        (List<TeamTask>) exportDataMap.get("exportIssueList"),
-        paramsMap,
-        exportSelectionMap,
-        exportFieldMap);
-    redmineExportTimeSpentService.exportTimeSpent(
-        (List<TimesheetLine>) exportDataMap.get("exportTimeEntryList"), paramsMap);
 
     // IMPORT PROCESS
 

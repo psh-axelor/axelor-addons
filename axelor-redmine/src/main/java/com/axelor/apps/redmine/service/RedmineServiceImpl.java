@@ -20,9 +20,9 @@ package com.axelor.apps.redmine.service;
 import com.axelor.apps.base.db.AppRedmine;
 import com.axelor.apps.base.db.Batch;
 import com.axelor.apps.base.db.repo.AppRedmineRepository;
-import com.axelor.apps.redmine.issue.sync.RedmineSyncIssueService;
+import com.axelor.apps.redmine.imports.service.RedmineIssueService;
+import com.axelor.apps.redmine.imports.service.RedmineProjectService;
 import com.axelor.apps.redmine.message.IMessage;
-import com.axelor.apps.redmine.project.sync.RedmineSyncProjectService;
 import com.axelor.common.StringUtils;
 import com.axelor.exception.AxelorException;
 import com.axelor.exception.db.repo.TraceBackRepository;
@@ -40,12 +40,12 @@ import java.util.function.Consumer;
 public class RedmineServiceImpl implements RedmineService {
 
   @Inject private AppRedmineRepository appRedmineRepo;
-  @Inject protected RedmineSyncProjectService redmineSyncProjectService;
-  @Inject protected RedmineSyncIssueService redmineSyncIssueService;
+  @Inject protected RedmineProjectService redmineImportProjectService;
+  @Inject protected RedmineIssueService redmineImportIssueService;
 
   @Override
   @Transactional
-  public void redmineSyncProjects(
+  public void redmineImportProjects(
       Batch batch, Consumer<Object> onSuccess, Consumer<Throwable> onError) {
 
     try {
@@ -55,7 +55,7 @@ public class RedmineServiceImpl implements RedmineService {
         return;
       }
 
-      redmineSyncProjectService.redmineSyncProject(batch, redmineManager, onSuccess, onError);
+      redmineImportProjectService.redmineImportProject(batch, redmineManager, onSuccess, onError);
     } catch (Exception e) {
       TraceBackService.trace(e, "", batch.getId());
     }
@@ -63,7 +63,7 @@ public class RedmineServiceImpl implements RedmineService {
 
   @Override
   @Transactional
-  public void redmineSyncIssues(
+  public void redmineImportIssues(
       Batch batch, Consumer<Object> onSuccess, Consumer<Throwable> onError) {
 
     try {
@@ -73,7 +73,7 @@ public class RedmineServiceImpl implements RedmineService {
         return;
       }
 
-      redmineSyncIssueService.redmineSyncIssue(batch, redmineManager, onSuccess, onError);
+      redmineImportIssueService.redmineImportIssue(batch, redmineManager, onSuccess, onError);
     } catch (Exception e) {
       TraceBackService.trace(e, "", batch.getId());
     }

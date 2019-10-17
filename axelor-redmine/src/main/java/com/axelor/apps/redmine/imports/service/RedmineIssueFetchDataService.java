@@ -20,7 +20,6 @@ package com.axelor.apps.redmine.imports.service;
 import com.taskadapter.redmineapi.Params;
 import com.taskadapter.redmineapi.RedmineException;
 import com.taskadapter.redmineapi.RedmineManager;
-import com.taskadapter.redmineapi.bean.CustomFieldDefinition;
 import com.taskadapter.redmineapi.bean.Issue;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -34,7 +33,6 @@ public class RedmineIssueFetchDataService {
   private ZonedDateTime lastBatchEndDate;
   private RedmineManager redmineManager;
   private HashMap<String, List<?>> importDataMap;
-  private HashMap<String, String> cfMap;
 
   private static Integer FETCH_LIMIT = 100;
   private static Integer TOTAL_FETCH_COUNT = 0;
@@ -45,17 +43,6 @@ public class RedmineIssueFetchDataService {
     this.lastBatchEndDate = lastBatchEndDate;
     this.redmineManager = redmineManager;
     this.importDataMap = new HashMap<String, List<?>>();
-    this.cfMap = new HashMap<>();
-
-    List<CustomFieldDefinition> cfList =
-        redmineManager.getCustomFieldManager().getCustomFieldDefinitions();
-
-    for (CustomFieldDefinition cfDef : cfList) {
-
-      if (cfDef.getName().equals("OS Id")) {
-        cfMap.put(cfDef.getCustomizedType(), "cf_" + cfDef.getId());
-      }
-    }
 
     this.fetchImportIssueData();
     this.fetchImportTimeEntryData();
@@ -70,26 +57,15 @@ public class RedmineIssueFetchDataService {
         new ArrayList<com.taskadapter.redmineapi.bean.Issue>();
 
     Params params = new Params();
-    Params osIdParams = new Params();
 
     if (lastBatchEndDate != null) {
       ZonedDateTime endOn = lastBatchEndDate.withZoneSameInstant(ZoneOffset.UTC).withNano(0);
-      String cf_Id = cfMap.get("issue");
 
       params
           .add("set_filter", "1")
           .add("f[]", "updated_on")
           .add("op[updated_on]", ">=")
-          .add("v[updated_on][]", endOn.toString())
-          .add("f[]", cf_Id)
-          .add("op[" + cf_Id + "]", ">")
-          .add("v[" + cf_Id + "][]", "0");
-
-      osIdParams
-          .add("set_filter", "1")
-          .add("f[]", cf_Id)
-          .add("op[" + cf_Id + "]", "=")
-          .add("v[" + cf_Id + "][]", "0");
+          .add("v[updated_on][]", endOn.toString());
     }
 
     List<Issue> tempIssueList;
@@ -100,11 +76,8 @@ public class RedmineIssueFetchDataService {
       if (tempIssueList != null && tempIssueList.size() > 0) {
         importIssueList.addAll(tempIssueList);
         TOTAL_FETCH_COUNT += tempIssueList.size();
-      } else {
-        params = osIdParams;
-        osIdParams = null;
       }
-    } while (params != null);
+    } while (tempIssueList != null && tempIssueList.size() > 0);
 
     importDataMap.put("importIssueList", importIssueList);
   }
@@ -128,7 +101,6 @@ public class RedmineIssueFetchDataService {
 
     if (lastBatchEndDate != null) {
       params.put("from", lastBatchEndDate.toLocalDate().toString());
-      params.put(cfMap.get("time_entry"), "0");
     }
 
     importTimeEntryList = redmineManager.getTimeEntryManager().getTimeEntries(params).getResults();

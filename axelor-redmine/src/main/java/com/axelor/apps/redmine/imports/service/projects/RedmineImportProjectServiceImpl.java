@@ -128,15 +128,7 @@ public class RedmineImportProjectServiceImpl extends RedmineImportService
 
     this.setRedmineCustomFieldsMap(redmineProject.getCustomFields());
 
-    CustomField osId = (CustomField) redmineCustomFieldsMap.get("OS Id");
-    String osIdValue = osId.getValue();
-    Project project;
-
-    if (osIdValue != null && !osIdValue.equals("0")) {
-      project = projectRepo.find(Long.parseLong(osIdValue));
-    } else {
-      project = projectRepo.findByRedmineId(redmineProject.getId());
-    }
+    Project project = projectRepo.findByRedmineId(redmineProject.getId());
 
     if (project == null) {
       project = new Project();
@@ -168,13 +160,6 @@ public class RedmineImportProjectServiceImpl extends RedmineImportService
       projectRepo.save(project);
       onSuccess.accept(project);
       success++;
-
-      redmineProject.setTransport(redmineTransport);
-      osId.setValue(project.getId().toString());
-
-      if (!redmineProject.getStatus().equals(REDMINE_PROJECT_STATUS_CLOSED)) {
-        redmineProject.update();
-      }
     } catch (Exception e) {
       onError.accept(e);
       fail++;

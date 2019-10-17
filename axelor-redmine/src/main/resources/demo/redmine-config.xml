@@ -3,7 +3,7 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://axelor.com/xml/ns/data-import http://axelor.com/xml/ns/data-import/data-import_5.0.xsd">
 
-	<input file="redmine_redmineSyncConfig.csv" type="com.axelor.apps.redmine.db.RedmineSyncConfig"
+	<input file="redmine_redmineImportConfig.csv" type="com.axelor.apps.redmine.db.RedmineImportConfig"
 		search="self.importId = :importId" separator=";">
 
 		<bind column="redmineMappingFieldSelect" to="redmineMappingFieldSelect" />

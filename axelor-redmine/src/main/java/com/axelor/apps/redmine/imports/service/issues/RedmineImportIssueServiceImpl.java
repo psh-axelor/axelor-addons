@@ -207,15 +207,7 @@ public class RedmineImportIssueServiceImpl extends RedmineImportService
   @Transactional
   public void createOpenSuiteIssue(Issue redmineIssue) {
 
-    CustomField osId = redmineIssue.getCustomFieldByName("OS Id");
-    String osIdValue = osId.getValue();
-    TeamTask teamTask;
-
-    if (osIdValue != null && !osIdValue.equals("0")) {
-      teamTask = teamTaskRepo.find(Long.parseLong(osIdValue));
-    } else {
-      teamTask = teamTaskRepo.findByRedmineId(redmineIssue.getId());
-    }
+    TeamTask teamTask = teamTaskRepo.findByRedmineId(redmineIssue.getId());
 
     if (teamTask == null) {
       teamTask = new TeamTask();
@@ -240,10 +232,6 @@ public class RedmineImportIssueServiceImpl extends RedmineImportService
       teamTaskRepo.save(teamTask);
       onSuccess.accept(teamTask);
       success++;
-
-      redmineIssue.setTransport(redmineTransport);
-      osId.setValue(teamTask.getId().toString());
-      redmineIssue.update();
     } catch (Exception e) {
       onError.accept(e);
       fail++;

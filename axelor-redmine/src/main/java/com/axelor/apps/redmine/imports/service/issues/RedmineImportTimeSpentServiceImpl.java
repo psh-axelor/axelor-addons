@@ -171,15 +171,7 @@ public class RedmineImportTimeSpentServiceImpl extends RedmineImportService
   @Transactional
   public void createOpenSuiteTimesheetLine(TimeEntry redmineTimeEntry) {
 
-    CustomField osId = redmineTimeEntry.getCustomField("OS Id");
-    String osIdValue = osId.getValue();
-    TimesheetLine timesheetLine;
-
-    if (osId != null && osIdValue != null && !osIdValue.equals("0")) {
-      timesheetLine = timesheetLineRepo.find(Long.parseLong(osIdValue));
-    } else {
-      timesheetLine = timesheetLineRepo.findByRedmineId(redmineTimeEntry.getId());
-    }
+    TimesheetLine timesheetLine = timesheetLineRepo.findByRedmineId(redmineTimeEntry.getId());
 
     if (timesheetLine == null) {
       timesheetLine = new TimesheetLine();
@@ -213,10 +205,6 @@ public class RedmineImportTimeSpentServiceImpl extends RedmineImportService
         timesheetLineRepo.save(timesheetLine);
         onSuccess.accept(timesheetLine);
         success++;
-
-        redmineTimeEntry.setTransport(redmineTransport);
-        osId.setValue(timesheetLine.getId().toString());
-        redmineTimeEntry.update();
       } catch (Exception e) {
         onError.accept(e);
         fail++;
@@ -233,7 +221,6 @@ public class RedmineImportTimeSpentServiceImpl extends RedmineImportService
 
       if (user != null) {
         timesheetLine.setUser(user);
-        setCreatedByUser(timesheetLine, user, "setCreatedBy");
 
         Timesheet timesheet =
             timesheetRepo
@@ -265,6 +252,8 @@ public class RedmineImportTimeSpentServiceImpl extends RedmineImportService
         timesheetLine.setDuration(BigDecimal.valueOf(redmineTimeEntry.getHours()));
         timesheetLine.setDate(
             redmineTimeEntry.getSpentOn().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+
+        setCreatedByUser(timesheetLine, user, "setCreatedBy");
       }
 
       setLocalDateTime(timesheetLine, redmineTimeEntry.getCreatedOn(), "setCreatedOn");

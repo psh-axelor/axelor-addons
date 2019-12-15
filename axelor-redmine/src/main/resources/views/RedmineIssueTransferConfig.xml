@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/object-views http://axelor.com/xml/ns/object-views/object-views_5.0.xsd">
+
+	<grid
+		model="com.axelor.apps.redmine.db.RedmineIssueTransferConfig"
+		title="Redmine issue transfer config"
+		name="redmine-issue-transfer-config-grid">
+
+		<field name="source" />
+		<field name="target" />
+
+	</grid>
+
+	<form
+		model="com.axelor.apps.redmine.db.RedmineIssueTransferConfig"
+		title="Redmine issue transfer config"
+		name="redmine-issue-transfer-config-form" width="large">
+
+		<panel name="mainPanel">
+			<field name="source" required="true" />
+			<field name="target" required="true" />
+		</panel>
+
+	</form>
+
+</object-views>

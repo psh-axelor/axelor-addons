@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models
+	xmlns="http://axelor.com/xml/ns/domain-models"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/domain-models http://axelor.com/xml/ns/domain-models/domain-models_5.0.xsd">
+
+	<module name="redmine" package="com.axelor.apps.redmine.db" />
+
+	<entity name="RedmineIssueTransfer" lang="java">
+
+		<string name="sourceUri" title="Source URI" />
+		<string name="sourceApiAccessKey" title="Source API Access Key" />
+		<string name="targetUri" title="Target URI" />
+		<string name="targetApiAccessKey" title="Target API Access Key" />
+
+		<one-to-many name="projectTransferConfigList"
+			ref="com.axelor.apps.redmine.db.RedmineIssueTransferConfig"
+			mappedBy="projectTransfer" />
+		<one-to-many name="trackerTransferConfigList"
+			ref="com.axelor.apps.redmine.db.RedmineIssueTransferConfig"
+			mappedBy="trackerTransfer" />
+		<one-to-many name="statusTransferConfigList"
+			ref="com.axelor.apps.redmine.db.RedmineIssueTransferConfig"
+			mappedBy="statusTransfer" />
+		<one-to-many name="priorityTransferConfigList"
+			ref="com.axelor.apps.redmine.db.RedmineIssueTransferConfig"
+			mappedBy="priorityTransfer" />
+
+	</entity>
+
+</domain-models>

@@ -30,6 +30,8 @@ import com.axelor.apps.redmine.imports.service.issues.RedmineImportTimeSpentServ
 import com.axelor.apps.redmine.imports.service.issues.RedmineImportTimeSpentServiceImpl;
 import com.axelor.apps.redmine.imports.service.projects.RedmineImportProjectService;
 import com.axelor.apps.redmine.imports.service.projects.RedmineImportProjectServiceImpl;
+import com.axelor.apps.redmine.service.RedmineIssueTransferService;
+import com.axelor.apps.redmine.service.RedmineIssueTransferServiceImpl;
 import com.axelor.apps.redmine.service.RedmineService;
 import com.axelor.apps.redmine.service.RedmineServiceImpl;
 
@@ -45,5 +47,7 @@ public class RedmineModule extends AxelorModule {
     bind(RedmineImportIssueService.class).to(RedmineImportIssueServiceImpl.class);
     bind(RedmineImportTimeSpentService.class).to(RedmineImportTimeSpentServiceImpl.class);
     bind(TeamTaskBusinessSupportRepository.class).to(TeamTaskRedmineRepositiry.class);
+
+    bind(RedmineIssueTransferService.class).to(RedmineIssueTransferServiceImpl.class);
   }
 }

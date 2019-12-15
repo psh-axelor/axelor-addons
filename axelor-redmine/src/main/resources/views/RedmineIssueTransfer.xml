@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/object-views http://axelor.com/xml/ns/object-views/object-views_5.0.xsd">
+
+	<grid model="com.axelor.apps.redmine.db.RedmineIssueTransfer"
+		title="Redmine issue transfer" name="redmine-issue-transfer-grid">
+
+		<field name="sourceUri" />
+		<field name="sourceApiAccessKey" />
+		<field name="targetUri" />
+		<field name="targetApiAccessKey" />
+
+	</grid>
+
+	<form model="com.axelor.apps.redmine.db.RedmineIssueTransfer"
+		title="Redmine issue transfer" name="redmine-issue-transfer-form"
+		width="large">
+
+		<panel name="mainPanel">
+			<field name="sourceUri" required="true" />
+			<field name="sourceApiAccessKey" required="true" />
+			<field name="targetUri" required="true" />
+			<field name="targetApiAccessKey" required="true" />
+			<button name="transferBtn" title="Transfer"
+				onClick="save,action-redmine-method-issue-transfer" colSpan="4" />
+		</panel>
+
+		<panel-related field="projectTransferConfigList"
+			colSpan="12" />
+		<panel-related field="trackerTransferConfigList"
+			colSpan="12" />
+		<panel-related field="statusTransferConfigList"
+			colSpan="12" />
+		<panel-related field="priorityTransferConfigList"
+			colSpan="12" />
+
+	</form>
+
+	<action-method
+		name="action-redmine-method-issue-transfer">
+		<call
+			class="com.axelor.apps.redmine.web.RedmineIssueTransferController"
+			method="redmineIssueTransfer" />
+	</action-method>
+
+</object-views>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models
+	xmlns="http://axelor.com/xml/ns/domain-models"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/domain-models http://axelor.com/xml/ns/domain-models/domain-models_5.2.xsd">
+
+	<module name="sale" package="com.axelor.apps.sale.db" />
+
+	<entity name="SaleOrder" lang="java">
+
+		<date name="dueDate" />
+		<boolean name="sameAddress" />
+		<decimal name="totalDiscount" />
+		<string name="vatInfos" />
+		<decimal name="amountDiscount" />
+		<boolean name="isOnline" />
+		<boolean name="isSent" />
+		<datetime name="lastSendingDate" />
+		<string name="vatId" />
+		<string name="unitId" />
+		<string name="customerPoNumber" />
+		<boolean name="isPercentageDiscount" />
+		<decimal name="discount" />
+		<string name="catalogId" />
+		<string name="productId" />
+
+	</entity>
+
+</domain-models>

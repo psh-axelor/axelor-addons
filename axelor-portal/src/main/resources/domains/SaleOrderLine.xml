@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models
+	xmlns="http://axelor.com/xml/ns/domain-models"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/domain-models http://axelor.com/xml/ns/domain-models/domain-models_5.2.xsd">
+
+	<module name="sale" package="com.axelor.apps.sale.db" />
+
+	<entity name="SaleOrderLine" lang="java">
+
+		<string name="vatId" />
+		<string name="quotationRequestId" />
+		<string name="vatDisplayName" />
+		<decimal name="vatDisplayRate" />
+		<decimal name="invoicedQty" />
+		<decimal name="leftToDeliveredQty" />
+		<decimal name="leftToInvoicedQty" />
+		<string name="vatId" />
+		<decimal name="deliveredAmount" />
+
+	</entity>
+
+</domain-models>

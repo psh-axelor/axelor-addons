@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/object-views http://axelor.com/xml/ns/object-views/object-views_5.2.xsd">
+
+	<form name="partner-form" title="Partner"
+		model="com.axelor.apps.base.db.Partner" id="portal-partner-form"
+		extension="true">
+
+		<extend target="/">
+			<insert position="after">
+				<panel name="portalPanel" title="Portal fields">
+					<field name="supplierRef" />
+					<field name="lastName" />
+					<field name="isSameAddressOk" />
+					<field name="customerTitle" />
+					<field name="customerFirstName" />
+					<field name="customerLastName" />
+					<field name="customerCompanyName" />
+					<field name="customerPhone" />
+					<field name="customerEmail" />
+					<field name="customerDeliveryAddress" />
+					<field name="customerInvoicingAddress" />
+					<field name="siret" />
+					<field name="vatIntraCommunity" />
+					<field name="partnerComment" />
+					<field name="purchaseVatId" />
+					<field name="contactId" />
+					<field name="salesVatId" />
+				</panel>
+			</insert>
+		</extend>
+
+	</form>
+
+</object-views>

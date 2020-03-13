@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models
+	xmlns="http://axelor.com/xml/ns/domain-models"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/domain-models http://axelor.com/xml/ns/domain-models/domain-models_5.2.xsd">
+
+	<module name="account" package="com.axelor.apps.account.db" />
+
+	<entity sequential="true" name="Invoice" lang="java">
+
+		<decimal name="totalDiscount" />
+		<decimal name="amountDiscount" />
+		<datetime name="lastReminderDate" />
+		<datetime name="lastSendingDate" />
+		<boolean name="sameAddress" />
+		<string name="vatInfos" />
+		<boolean name="isOnline" />
+		<boolean name="isSent" />
+		<boolean name="usedInPayment" />
+		<decimal name="availableAmountForPayment" />
+		<string name="quotationId" />
+		<string name="catalogId" />
+		<boolean name="moveLinesExported" />
+		<string name="moveLinesExportedSequence" />
+		<string name="printPath" />
+		<boolean name="isPercentageDiscount" />
+		<decimal name="discount" />
+		<string name="customerPoNumber" />
+
+	</entity>
+
+</domain-models>

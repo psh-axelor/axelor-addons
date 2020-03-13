@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models
+	xmlns="http://axelor.com/xml/ns/domain-models"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/domain-models http://axelor.com/xml/ns/domain-models/domain-models_5.2.xsd">
+
+	<module name="base" package="com.axelor.apps.base.db" />
+
+	<entity name="Product" lang="java">
+
+		<boolean name="useForDeliveriesOnly" />
+		<decimal name="stock" />
+		<boolean name="isDisplayedFirst" />
+		<boolean name="isProductWithOption" />
+		<boolean name="isProductWithCombination" />
+		<boolean name="isVisibleByAll" />
+		<boolean name="isAcceptOrderIfNoStock" />
+		<string name="salesVatId" />
+		<string name="purchasesVatId" />
+		<string name="salesAccountingNumberId" />
+		<string name="purchasesAccountingNumberId" />
+		<boolean name="visibleOnEshop" />
+		<string name="slugName" />
+		<decimal name="salesPriceTaxIncluded" />
+
+	</entity>
+
+</domain-models>

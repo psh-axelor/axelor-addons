@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/object-views http://axelor.com/xml/ns/object-views/object-views_5.2.xsd">
+
+	<form model="com.axelor.apps.account.db.Invoice" title="Invoice"
+		name="invoice-form" id="portal-invoice-form" extension="true">
+
+		<extend target="/">
+			<insert position="after">
+				<panel name="portalPanel" title="Portal fields">
+					<field name="totalDiscount" />
+					<field name="amountDiscount" />
+					<field name="lastReminderDate" />
+					<field name="lastSendingDate" />
+					<field name="sameAddress" />
+					<field name="vatInfos" />
+					<field name="isOnline" />
+					<field name="isSent" />
+					<field name="usedInPayment" />
+					<field name="availableAmountForPayment" />
+					<field name="quotationId" />
+					<field name="catalogId" />
+					<field name="moveLinesExported" />
+					<field name="moveLinesExportedSequence" />
+					<field name="printPath" />
+					<field name="isPercentageDiscount" />
+					<field name="discount" />
+					<field name="customerPoNumber" />
+				</panel>
+			</insert>
+		</extend>
+
+	</form>
+
+</object-views>

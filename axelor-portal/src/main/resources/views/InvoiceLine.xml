@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/object-views http://axelor.com/xml/ns/object-views/object-views_5.2.xsd">
+
+	<form name="invoice-line-form" title="Invoice line"
+		model="com.axelor.apps.account.db.InvoiceLine"
+		id="portal-invoice-line-form" extension="true">
+
+		<extend target="/">
+			<insert position="after">
+				<panel name="portalPanel" title="Portal fields">
+					<field name="vatDisplayName" />
+					<field name="invoicedQty" />
+					<field name="leftToDeliveredQty" />
+					<field name="leftToInvoicedQty" />
+					<field name="vatId" />
+					<field name="isPercentageDiscount" />
+					<field name="vatDisplayRate" />
+					<field name="deliveredAmount" />
+				</panel>
+			</insert>
+		</extend>
+
+	</form>
+
+</object-views>

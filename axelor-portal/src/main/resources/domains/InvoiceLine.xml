@@ -13,7 +13,7 @@
 		<string name="leftToDeliveredQty" />
 		<string name="leftToInvoicedQty" />
 		<string name="vatId" />
-		<boolean name="isPercentageDiscount" />
+		<boolean name="isPercentageDiscount" default="false" />
 		<decimal name="vatDisplayRate" />
 		<decimal name="deliveredAmount" />
 

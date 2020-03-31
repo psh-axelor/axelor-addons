@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/domain-models http://axelor.com/xml/ns/domain-models/domain-models_5.2.xsd">
+
+	<module name="portal" package="com.axelor.apps.portal.db" />
+
+	<entity name="Space">
+
+		<string name="reference" />
+		<string name="name" />
+		<string name="orderMailSubject" />
+		<string name="orderMailContent" />
+		<string name="quotationMailSubject" />
+		<string name="quotationMailContent" />
+		<string name="invoiceMailSubject" />
+		<string name="invoiceMailContent" />
+		<string name="creditMailSubject" />
+		<string name="creditMailContent" />
+		<string name="advanceMailSubject" />
+		<string name="advanceMailContent" />
+		<string name="invoiceReminderMailSubject" />
+		<string name="invoiceReminderMailContent" />
+		<string name="address" large="true" multiline="true" />
+		<string name="footer" />
+		<string name="description" large="true" multiline="true" />
+		<string name="type" />
+		<string name="customerDelivery" />
+		<string name="priceDisplayedSelect" />
+		<string name="advanceSalesProductName" />
+		<string name="reasonForNotPayOnline" />
+		<string name="stripeAccountId" />
+		<string name="stripeAccountAccessToken" />
+		<string name="stripeAccountPublishableKey" />
+		<string name="stripeCustomerId" />
+		<string name="createInvoiceFromSelect" />
+		<string name="authorizedPayment" />
+		<string name="paypalEmailId" />
+		<string name="aboutPageHtml" />
+		<string name="paymentLabel" />
+		<string name="legalMentions" />
+		<string name="siren" />
+		<string name="company" />
+		<string name="industry" />
+		<string name="termsQuotations" large="true" multiline="true" />
+		<string name="termsOrders" large="true" multiline="true" />
+		<string name="termsInvoices" large="true" multiline="true" />
+
+		<decimal name="freeShippingMinimumAmount" default="0" />
+		<decimal name="deliveryAmount" default="0" />
+
+		<boolean name="isActive" default="false" />
+		<boolean name="isCustomerInviteOnly" default="false" />
+		<boolean name="isOnlineSellsEnable" default="true" />
+		<boolean name="showPricesOnEshop" default="true" />
+		<boolean name="isPricesWithoutTax" default="false" />
+		<boolean name="isCostOnDelivery" default="false" />
+		<boolean name="isFreeDelivery" default="false" />
+		<boolean name="isPaymentOnInvoiceRequired" default="false" />
+		<boolean name="isCrmAppActive" default="false" />
+		<boolean name="isSalesAppActive" default="false" />
+		<boolean name="isPurchaseExpenseAppActive" default="false" />
+		<boolean name="isStockManagementEnable" default="false" />
+		<boolean name="isAccountingAppActive" default="false" />
+		<boolean name="isSettingsAppActive" default="false" />
+		<boolean name="canShowPicturesOnInvoice" default="false" />
+		<boolean name="canAskForQuotation" default="false" />
+		<boolean name="isOnlinePaymentRequired" default="true" />
+		<boolean name="isCustomerAbleToChoosePayment" default="false" />
+		<boolean name="isNegativeStockAllowed" default="false" />
+		<boolean name="isDeliveryOrderManagementEnable" default="false" />
+		<boolean name="isStripePaymentEnable" default="false" />
+		<boolean name="isPaypalPaymentEnable" default="false" />
+		<boolean name="displayStock" default="false" />
+		<boolean name="premium" default="false" />
+
+		<integer name="numberOfDecimal" default="2" />
+		<integer name="unitPriceDecimalPlaces" default="2" />
+		<integer name="quotationValidityDelay" default="15" />
+		<integer name="displayStockNumber" default="5" />
+
+		<many-to-one name="accountId" ref="com.axelor.apps.account.db.Account" />
+
+	</entity>
+
+</domain-models>

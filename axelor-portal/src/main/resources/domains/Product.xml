@@ -8,18 +8,18 @@
 
 	<entity name="Product" lang="java">
 
-		<boolean name="useForDeliveriesOnly" />
+		<boolean name="useForDeliveriesOnly" default="false" />
 		<decimal name="stock" />
-		<boolean name="isDisplayedFirst" />
-		<boolean name="isProductWithOption" />
-		<boolean name="isProductWithCombination" />
-		<boolean name="isVisibleByAll" />
-		<boolean name="isAcceptOrderIfNoStock" />
+		<boolean name="isDisplayedFirst" default="false" />
+		<boolean name="isProductWithOption" default="false" />
+		<boolean name="isProductWithCombination" default="false" />
+		<boolean name="isVisibleByAll" default="false" />
+		<boolean name="isAcceptOrderIfNoStock" default="false" />
 		<string name="salesVatId" />
 		<string name="purchasesVatId" />
 		<string name="salesAccountingNumberId" />
 		<string name="purchasesAccountingNumberId" />
-		<boolean name="visibleOnEshop" />
+		<boolean name="visibleOnEshop" default="false" />
 		<string name="slugName" />
 		<decimal name="salesPriceTaxIncluded" />
 

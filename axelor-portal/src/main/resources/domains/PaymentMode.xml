@@ -8,7 +8,7 @@
 
 	<entity name="PaymentMode" lang="java" cacheable="true">
 
-		<string name="accountingAccountId" />
+		<string name="accountingAccountId" default="false" />
 
 	</entity>
 

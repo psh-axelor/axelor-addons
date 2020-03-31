@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/object-views http://axelor.com/xml/ns/object-views/object-views_5.2.xsd">
+
+	<grid name="space-grid" title="Spaces" model="com.axelor.apps.portal.db.Space">
+
+		<field name="reference" />
+		<field name="name" />
+		<field name="company" />
+		<field name="industry" />
+		<field name="type" />
+		<field name="customerDelivery" />
+		<field name="authorizedPayment" />
+		<field name="paymentLabel" />
+		<field name="paypalEmailId" />
+		<field name="isActive" />
+		<field name="isOnlineSellsEnable" />
+		<field name="isOnlinePaymentRequired" />
+
+	</grid>
+
+	<form model="com.axelor.apps.portal.db.Space" title="Space" name="space-form"
+		width="large">
+
+		<panel name="mainPanel">
+			<field name="reference" />
+			<field name="name" />
+			<field name="orderMailSubject" />
+			<field name="orderMailContent" />
+			<field name="quotationMailSubject" />
+			<field name="quotationMailContent" />
+			<field name="invoiceMailSubject" />
+			<field name="invoiceMailContent" />
+			<field name="creditMailSubject" />
+			<field name="creditMailContent" />
+			<field name="advanceMailSubject" />
+			<field name="advanceMailContent" />
+			<field name="invoiceReminderMailSubject" />
+			<field name="invoiceReminderMailContent" />
+			<field name="address" />
+			<field name="footer" />
+			<field name="description" />
+			<field name="type" />
+			<field name="customerDelivery" />
+			<field name="priceDisplayedSelect" />
+			<field name="advanceSalesProductName" />
+			<field name="reasonForNotPayOnline" />
+			<field name="stripeAccountId" />
+			<field name="stripeAccountAccessToken" />
+			<field name="stripeAccountPublishableKey" />
+			<field name="stripeCustomerId" />
+			<field name="createInvoiceFromSelect" />
+			<field name="authorizedPayment" />
+			<field name="paypalEmailId" />
+			<field name="aboutPageHtml" />
+			<field name="paymentLabel" />
+			<field name="legalMentions" />
+			<field name="siren" />
+			<field name="company" />
+			<field name="industry" />
+			<field name="termsQuotations" />
+			<field name="termsOrders" />
+			<field name="termsInvoices" />
+		</panel>
+
+	</form>
+</object-views>

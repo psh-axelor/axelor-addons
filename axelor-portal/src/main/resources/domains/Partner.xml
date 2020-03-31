@@ -10,7 +10,7 @@
 
 		<string name="supplierRef" />
 		<string name="lastName" />
-		<boolean name="isSameAddressOk" />
+		<boolean name="isSameAddressOk" default="false" />
 		<string name="customerTitle" />
 		<string name="customerFirstName" />
 		<string name="customerLastName" />

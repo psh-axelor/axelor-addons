@@ -10,8 +10,8 @@
 
 		<string name="personName" />
 		<string name="phone" />
-		<boolean name="isDefaultOk" />
-		<boolean name="isInvoicingOk" />
+		<boolean name="isDefaultOk" default="false" />
+		<boolean name="isInvoicingOk" default="false" />
 		<string name="partnerId" />
 		<string name="contactId" />
 

@@ -12,18 +12,18 @@
 		<decimal name="amountDiscount" />
 		<datetime name="lastReminderDate" />
 		<datetime name="lastSendingDate" />
-		<boolean name="sameAddress" />
+		<boolean name="sameAddress" default="false" />
 		<string name="vatInfos" />
-		<boolean name="isOnline" />
-		<boolean name="isSent" />
-		<boolean name="usedInPayment" />
+		<boolean name="isOnline" default="false" />
+		<boolean name="isSent" default="false" />
+		<boolean name="usedInPayment" default="false" />
 		<decimal name="availableAmountForPayment" />
 		<string name="quotationId" />
 		<string name="catalogId" />
-		<boolean name="moveLinesExported" />
+		<boolean name="moveLinesExported" default="false" />
 		<string name="moveLinesExportedSequence" />
 		<string name="printPath" />
-		<boolean name="isPercentageDiscount" />
+		<boolean name="isPercentageDiscount" default="false" />
 		<decimal name="discount" />
 		<string name="customerPoNumber" />
 

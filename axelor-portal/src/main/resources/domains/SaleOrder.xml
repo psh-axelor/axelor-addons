@@ -9,17 +9,17 @@
 	<entity name="SaleOrder" lang="java">
 
 		<date name="dueDate" />
-		<boolean name="sameAddress" />
+		<boolean name="sameAddress" default="false" />
 		<decimal name="totalDiscount" />
 		<string name="vatInfos" />
 		<decimal name="amountDiscount" />
-		<boolean name="isOnline" />
-		<boolean name="isSent" />
+		<boolean name="isOnline" default="false" />
+		<boolean name="isSent" default="false" />
 		<datetime name="lastSendingDate" />
 		<string name="vatId" />
 		<string name="unitId" />
 		<string name="customerPoNumber" />
-		<boolean name="isPercentageDiscount" />
+		<boolean name="isPercentageDiscount" default="false" />
 		<decimal name="discount" />
 		<string name="catalogId" />
 		<string name="productId" />

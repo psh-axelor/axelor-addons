@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://axelor.com/xml/ns/object-views http://axelor.com/xml/ns/object-views/object-views_5.2.xsd">
+
+	<menuitem title="Portal Space" name="portal-space-root"
+		if="__config__.app.isApp('portal')" action="portal.space.root" />
+
+	<action-view name="portal.space.root" title="Portal Space"
+		model="com.axelor.apps.portal.db.Space">
+		<view type="grid" name="space-grid" />
+		<view type="form" name="space-form" />
+	</action-view>
+
+</object-views>

@@ -31,6 +31,9 @@
 					<button name="redmineImportIssuesBtn" title="Redmine Import Issues"
 						onClick="save,action-redmine-batch-method-import-issues" colSpan="12"
 						hidden="true" showIf="redmineActionSelect == 1" />
+					<button name="redmineExportTimesheetlinesBtn" title="Redmine Export Timesheetlines"
+						onClick="save,action-redmine-batch-method-export-timesheet-lines"
+						colSpan="12" hidden="true" showIf="redmineActionSelect == 2"/>
 				</panel>
 			</panel>
 			<panel name="information" title="Information">
@@ -66,6 +69,11 @@
 	<action-method name="action-redmine-batch-method-import-issues">
 		<call class="com.axelor.apps.redmine.web.RedmineBatchController"
 			method="redmineImportIssues" />
+	</action-method>
+
+	<action-method name="action-redmine-batch-method-export-timesheet-lines">
+		<call class="com.axelor.apps.redmine.web.RedmineBatchController"
+			method="redmineExportTimesheetLines" />
 	</action-method>
 
 </object-views>

@@ -69,6 +69,20 @@ public class RedmineBatchController {
     response.setReload(true);
   }
 
+  public void redmineExportTimesheetLines(ActionRequest request, ActionResponse response) {
+
+    RedmineBatch redmineBatch = request.getContext().asType(RedmineBatch.class);
+    redmineBatch = redmineBatchRepo.find(redmineBatch.getId());
+
+    Batch batch = Beans.get(RedmineBatchService.class).redmineExportTimesheetlines(redmineBatch);
+
+    if (batch != null) {
+      response.setFlash(IMessage.BATCH_REDMINE_EXPORT_SUCCESS);
+    }
+
+    response.setReload(true);
+  }
+
   public void createdProjectsInOs(ActionRequest request, ActionResponse response) {
 
     Batch batch = request.getContext().asType(Batch.class);

@@ -50,6 +50,9 @@ public class RedmineBatchService extends AbstractBatchService {
       case RedmineBatchRepository.ACTION_SELECT_IMPORT_ISSUE:
         batch = redmineImportIssues(redmineBatch);
         break;
+      case RedmineBatchRepository.ACTION_SELECT_EXPORT_TIMESHEETLINE:
+        batch = redmineExportTimesheetlines(redmineBatch);
+        break;
       default:
         throw new AxelorException(
             TraceBackRepository.CATEGORY_INCONSISTENCY,
@@ -67,5 +70,9 @@ public class RedmineBatchService extends AbstractBatchService {
 
   public Batch redmineImportIssues(RedmineBatch redmineBatch) {
     return Beans.get(BatchImportAllRedmineIssue.class).run(redmineBatch);
+  }
+
+  public Batch redmineExportTimesheetlines(RedmineBatch redmineBatch) {
+    return Beans.get(BatchRedmineExportTimesheetline.class).run(redmineBatch);
   }
 }

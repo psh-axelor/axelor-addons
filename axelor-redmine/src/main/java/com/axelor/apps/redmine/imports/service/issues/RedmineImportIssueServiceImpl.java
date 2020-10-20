@@ -25,12 +25,14 @@ import com.axelor.apps.base.db.repo.CompanyRepository;
 import com.axelor.apps.base.db.repo.PartnerRepository;
 import com.axelor.apps.base.db.repo.ProductRepository;
 import com.axelor.apps.base.service.administration.AbstractBatch;
+import com.axelor.apps.businesssupport.db.repo.ProjectVersionRepository;
 import com.axelor.apps.project.db.Project;
 import com.axelor.apps.project.db.TeamTaskCategory;
 import com.axelor.apps.project.db.repo.ProjectRepository;
 import com.axelor.apps.project.db.repo.TeamTaskCategoryRepository;
 import com.axelor.apps.redmine.db.RedmineBatch;
 import com.axelor.apps.redmine.db.RedmineImportMapping;
+import com.axelor.apps.redmine.db.repo.RedmineImportConfigRepository;
 import com.axelor.apps.redmine.db.repo.RedmineImportMappingRepository;
 import com.axelor.apps.redmine.imports.service.RedmineImportService;
 import com.axelor.apps.redmine.message.IMessage;
@@ -69,6 +71,7 @@ public class RedmineImportIssueServiceImpl extends RedmineImportService
     implements RedmineImportIssueService {
 
   protected RedmineImportMappingRepository redmineImportMappingRepository;
+  protected ProjectVersionRepository projectVersionRepository;
 
   @Inject
   public RedmineImportIssueServiceImpl(
@@ -80,7 +83,8 @@ public class RedmineImportIssueServiceImpl extends RedmineImportService
       PartnerRepository partnerRepo,
       RedmineImportMappingRepository redmineImportMappingRepository,
       AppRedmineRepository appRedmineRepo,
-      CompanyRepository companyRepo) {
+      CompanyRepository companyRepo,
+      ProjectVersionRepository projectVersionRepository) {
 
     super(
         userRepo,
@@ -92,6 +96,7 @@ public class RedmineImportIssueServiceImpl extends RedmineImportService
         appRedmineRepo,
         companyRepo);
     this.redmineImportMappingRepository = redmineImportMappingRepository;
+    this.projectVersionRepository = projectVersionRepository;
   }
 
   Logger LOG = LoggerFactory.getLogger(getClass());
@@ -155,7 +160,14 @@ public class RedmineImportIssueServiceImpl extends RedmineImportService
       }
 
       List<RedmineImportMapping> redmineImportMappingList =
-          redmineImportMappingRepository.all().fetch();
+          redmineImportMappingRepository
+              .all()
+              .filter(
+                  "self.redmineImportConfig.redmineMappingFieldSelect in (?1, ?2, ?3)",
+                  RedmineImportConfigRepository.MAPPING_FIELD_PROJECT_TRACKER,
+                  RedmineImportConfigRepository.MAPPING_FIELD_TASK_PRIORITY,
+                  RedmineImportConfigRepository.MAPPING_FIELD_TASK_STATUS)
+              .fetch();
 
       for (RedmineImportMapping redmineImportMapping : redmineImportMappingList) {
         fieldMap.put(redmineImportMapping.getRedmineValue(), redmineImportMapping.getOsValue());
@@ -415,6 +427,10 @@ public class RedmineImportIssueServiceImpl extends RedmineImportService
 
       Version targetVersion = redmineIssue.getTargetVersion();
       teamTask.setFixedVersion(targetVersion != null ? targetVersion.getName() : null);
+      teamTask.setTargetVersion(
+          targetVersion != null
+              ? projectVersionRepository.findByRedmineId(targetVersion.getId())
+              : null);
 
       String value = redmineCustomFieldsMap.get(redmineIssueDueDate);
       teamTask.setDueDate(
@@ -459,7 +475,7 @@ public class RedmineImportIssueServiceImpl extends RedmineImportService
       // ERROR AND IMPORT WITH DEFAULT IF STATUS NOT FOUND
 
       String status = fieldMap.get(redmineIssue.getStatusName());
-      value = selectionMap.get(status);
+      value = (String) selectionMap.get(status);
 
       if (status != null && value != null) {
         teamTask.setStatus(value);
@@ -471,7 +487,7 @@ public class RedmineImportIssueServiceImpl extends RedmineImportService
       // ERROR AND IMPORT WITH DEFAULT IF PRIORITY NOT FOUND
 
       String priority = fieldMap.get(redmineIssue.getPriorityText());
-      value = selectionMap.get(priority);
+      value = (String) selectionMap.get(priority);
 
       if (priority != null && value != null) {
         teamTask.setPriority(value);

@@ -21,6 +21,8 @@ public interface IMessage {
 
   static final String BATCH_REDMINE_IMPORT_SUCCESS = /*$$(*/ "Redmine import completed" /*)*/;
 
+  static final String BATCH_REDMINE_EXPORT_SUCCESS = /*$$(*/ "Redmine export completed" /*)*/;
+
   static final String REDMINE_AUTHENTICATION_1 = /*$$(*/
       "URI and API Access Key should not be empty" /*)*/;
 

@@ -28,11 +28,13 @@ import com.axelor.apps.message.db.EmailAddress;
 import com.axelor.apps.message.db.repo.EmailAddressRepository;
 import com.axelor.apps.project.db.Project;
 import com.axelor.apps.redmine.service.RedmineService;
+import com.axelor.apps.tool.StringTool;
 import com.axelor.auth.db.User;
 import com.axelor.exception.AxelorException;
 import com.axelor.exception.db.repo.TraceBackRepository;
 import com.axelor.exception.service.TraceBackService;
 import com.axelor.i18n.I18n;
+import com.axelor.team.db.TeamTask;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.google.inject.persist.Transactional;
@@ -43,7 +45,6 @@ import com.taskadapter.redmineapi.UserManager;
 import com.taskadapter.redmineapi.bean.TimeEntry;
 import com.taskadapter.redmineapi.bean.TimeEntryActivity;
 import com.taskadapter.redmineapi.internal.Transport;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -60,9 +61,11 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
   @Inject protected RedmineService redmineService;
   @Inject protected EmailAddressRepository emailAddressRepository;
 
-  public String failedTimesheetLinesIds = "";
-  public static int success = 0, fail = 0;
-  public static String result = "";
+  protected String failedTimesheetLinesIds = "";
+  protected static int success = 0, fail = 0;
+  protected static String result = "";
+  protected HashMap<String, Integer> redmineUserEmailMap = new HashMap<>();
+  protected HashMap<Long, String> aosUserEmailMap = new HashMap<>();
 
   @Override
   protected void process() {
@@ -100,7 +103,8 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
                       .filter(
                           "self.updatedOn > ?1 or self.id in (?2)",
                           lastBatchEndDate,
-                          batch.getRedmineBatch().getFailedRedmineTimeEntriesIds())
+                          StringTool.getIntegerList(
+                              batch.getRedmineBatch().getFailedRedmineTimeEntriesIds()))
                       .fetch()
                   : timesheetLineRepo.all().filter("self.updatedOn > ?1", lastBatchEndDate).fetch())
               : timesheetLineRepo.all().fetch();
@@ -144,7 +148,7 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
           }
         }
       }
-      
+
       batch.getRedmineBatch().setFailedRedmineTimeEntriesIds(failedTimesheetLinesIds);
     }
 
@@ -207,11 +211,7 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
           redmineUserManager,
           redmineTimeEntryActivityMap);
     } else {
-      failedTimesheetLinesIds =
-          StringUtils.isEmpty(failedTimesheetLinesIds)
-              ? String.valueOf(timesheetLine.getId())
-              : failedTimesheetLinesIds + "," + timesheetLine.getId();
-      fail++;
+      updateFailedTimesheetLinesIds(timesheetLine.getId());
     }
   }
 
@@ -224,39 +224,73 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
       HashMap<String, Integer> redmineTimeEntryActivityMap)
       throws AxelorException, RedmineException {
 
-    if (project.getRedmineId() != null && project.getRedmineId() != 0) {
-      redmineTimeEntry.setProjectId(project.getRedmineId());
+    String address = null;
+
+    if (aosUserEmailMap.containsKey(timesheetLine.getUser().getId())) {
+      address = aosUserEmailMap.get(timesheetLine.getUser().getId());
     } else {
-      failedTimesheetLinesIds =
-          StringUtils.isEmpty(failedTimesheetLinesIds)
-              ? String.valueOf(timesheetLine.getId())
-              : failedTimesheetLinesIds + "," + timesheetLine.getId();
-      fail++;
+      aosUserEmailMap.put(timesheetLine.getUser().getId(), null);
+      EmailAddress emailAddress = getEmailAddress(timesheetLine.getUser());
+      address = emailAddress.getAddress();
+      aosUserEmailMap.put(timesheetLine.getUser().getId(), address);
+    }
+
+    if (StringUtils.isEmpty(address)) {
+      updateFailedTimesheetLinesIds(timesheetLine.getId());
       return;
     }
 
-    if (timesheetLine.getTeamTask() != null
-        && timesheetLine.getTeamTask().getRedmineId() != null
-        && timesheetLine.getTeamTask().getRedmineId() != 0) {
-      redmineTimeEntry.setIssueId(timesheetLine.getTeamTask().getRedmineId());
+    if (redmineUserEmailMap.containsKey(address)) {
+
+      if (redmineUserEmailMap.get(address) != null) {
+        redmineTimeEntry.setUserId(redmineUserEmailMap.get(address));
+      } else {
+        updateFailedTimesheetLinesIds(timesheetLine.getId());
+        return;
+      }
     } else {
-      failedTimesheetLinesIds =
-          StringUtils.isEmpty(failedTimesheetLinesIds)
-              ? String.valueOf(timesheetLine.getId())
-              : failedTimesheetLinesIds + "," + timesheetLine.getId();
-      fail++;
+      HashMap<String, String> filterParam = new HashMap<>();
+      filterParam.put("name", address);
+      List<com.taskadapter.redmineapi.bean.User> redmineUsers =
+          redmineUserManager.getUsers(filterParam).getResults();
+
+      if (CollectionUtils.isNotEmpty(redmineUsers)) {
+        Integer redmineUserId = redmineUsers.get(0).getId();
+        redmineTimeEntry.setUserId(redmineUserId);
+        redmineUserEmailMap.put(address, redmineUserId);
+      } else {
+        redmineUserEmailMap.put(address, null);
+        updateFailedTimesheetLinesIds(timesheetLine.getId());
+        return;
+      }
+    }
+
+    Integer projectRedmineId = project.getRedmineId();
+
+    if (projectRedmineId != null && projectRedmineId != 0) {
+      redmineTimeEntry.setProjectId(projectRedmineId);
+    } else {
+      updateFailedTimesheetLinesIds(timesheetLine.getId());
       return;
+    }
+
+    TeamTask teamTask = timesheetLine.getTeamTask();
+
+    if (teamTask != null) {
+
+      if (teamTask.getRedmineId() != null && teamTask.getRedmineId() != 0) {
+        redmineTimeEntry.setIssueId(teamTask.getRedmineId());
+      } else {
+        updateFailedTimesheetLinesIds(timesheetLine.getId());
+        return;
+      }
     }
 
     if (redmineTimeEntryActivityMap.containsKey(timesheetLine.getActivityTypeSelect())) {
       redmineTimeEntry.setActivityId(
           redmineTimeEntryActivityMap.get(timesheetLine.getActivityTypeSelect()));
     } else {
-      failedTimesheetLinesIds =
-          StringUtils.isEmpty(failedTimesheetLinesIds)
-              ? String.valueOf(timesheetLine.getId())
-              : failedTimesheetLinesIds + "," + timesheetLine.getId();
-      fail++;
+      updateFailedTimesheetLinesIds(timesheetLine.getId());
       return;
     }
 
@@ -264,16 +298,6 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
     redmineTimeEntry.setSpentOn(
         Date.from(timesheetLine.getDate().atStartOfDay(ZoneId.systemDefault()).toInstant()));
     redmineTimeEntry.setHours(timesheetLine.getDuration().floatValue());
-
-    EmailAddress emailAddress = getEmailAddress(timesheetLine.getUser());
-    HashMap<String, String> filterParam = new HashMap<>();
-    filterParam.put("name", emailAddress.getName());
-    List<com.taskadapter.redmineapi.bean.User> redmineUsers =
-        redmineUserManager.getUsers(filterParam).getResults();
-
-    if (CollectionUtils.isNotEmpty(redmineUsers)) {
-      redmineTimeEntry.setUserId(redmineUsers.get(0).getId());
-    }
 
     if (redmineTimeEntry.getId() == null) {
       redmineTimeEntry = redmineTimeEntry.create();
@@ -285,6 +309,15 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
 
     success++;
     incrementDone();
+  }
+
+  protected void updateFailedTimesheetLinesIds(Long timesheetLineId) {
+
+    failedTimesheetLinesIds =
+        StringUtils.isEmpty(failedTimesheetLinesIds)
+            ? String.valueOf(timesheetLineId)
+            : failedTimesheetLinesIds + "," + timesheetLineId;
+    fail++;
   }
 
   protected EmailAddress getEmailAddress(User user) throws AxelorException {

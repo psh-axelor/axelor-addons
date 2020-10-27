@@ -27,6 +27,8 @@ import com.axelor.apps.hr.db.repo.TimesheetLineRepository;
 import com.axelor.apps.message.db.EmailAddress;
 import com.axelor.apps.message.db.repo.EmailAddressRepository;
 import com.axelor.apps.project.db.Project;
+import com.axelor.apps.redmine.imports.service.log.RedmineErrorLogService;
+import com.axelor.apps.redmine.message.IMessage;
 import com.axelor.apps.redmine.service.RedmineService;
 import com.axelor.apps.tool.StringTool;
 import com.axelor.auth.db.User;
@@ -34,8 +36,10 @@ import com.axelor.exception.AxelorException;
 import com.axelor.exception.db.repo.TraceBackRepository;
 import com.axelor.exception.service.TraceBackService;
 import com.axelor.i18n.I18n;
+import com.axelor.meta.db.MetaFile;
 import com.axelor.team.db.TeamTask;
 import com.google.common.base.Strings;
+import com.google.common.collect.ObjectArrays;
 import com.google.inject.Inject;
 import com.google.inject.persist.Transactional;
 import com.taskadapter.redmineapi.RedmineException;
@@ -47,7 +51,7 @@ import com.taskadapter.redmineapi.bean.TimeEntryActivity;
 import com.taskadapter.redmineapi.internal.Transport;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -60,12 +64,24 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
   @Inject protected AppRedmineRepository appRedmineRepo;
   @Inject protected RedmineService redmineService;
   @Inject protected EmailAddressRepository emailAddressRepository;
+  @Inject protected RedmineErrorLogService redmineErrorLogService;
 
   protected String failedTimesheetLinesIds = "";
   protected static int success = 0, fail = 0;
   protected static String result = "";
+
+  protected LocalDateTime lastBatchEndDate;
+  protected Transport redmineTransport;
+  protected TimeEntryManager redmineTimeEntryManager;
+  protected UserManager redmineUserManager;
+
+  protected HashMap<String, Integer> redmineTimeEntryActivityMap = new HashMap<>();
   protected HashMap<String, Integer> redmineUserEmailMap = new HashMap<>();
+  protected HashMap<String, String> redmineUserLoginMap = new HashMap<>();
   protected HashMap<Long, String> aosUserEmailMap = new HashMap<>();
+
+  protected List<Object[]> errorObjList = new ArrayList<>();
+  protected Object[] errors;
 
   @Override
   protected void process() {
@@ -82,70 +98,24 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
     }
 
     if (redmineManager != null) {
-      Batch lastBatch =
-          batchRepo
-              .all()
-              .filter(
-                  "self.id != ?1 and self.redmineBatch.id = ?2",
-                  batch.getId(),
-                  batch.getRedmineBatch().getId())
-              .order("-updatedOn")
-              .fetchOne();
-
-      ZonedDateTime lastBatchEndDate = lastBatch != null ? lastBatch.getEndDate() : null;
-      LocalDateTime lastBatchUpdatedOn = lastBatch != null ? lastBatch.getUpdatedOn() : null;
-
-      List<TimesheetLine> timesheetLineList =
-          lastBatchEndDate != null
-              ? (StringUtils.isNotEmpty(batch.getRedmineBatch().getFailedRedmineTimeEntriesIds())
-                  ? timesheetLineRepo
-                      .all()
-                      .filter(
-                          "self.updatedOn > ?1 or self.id in (?2)",
-                          lastBatchEndDate,
-                          StringTool.getIntegerList(
-                              batch.getRedmineBatch().getFailedRedmineTimeEntriesIds()))
-                      .fetch()
-                  : timesheetLineRepo.all().filter("self.updatedOn > ?1", lastBatchEndDate).fetch())
-              : timesheetLineRepo.all().fetch();
+      List<TimesheetLine> timesheetLineList = fetchTimesheetLineList();
 
       if (CollectionUtils.isNotEmpty(timesheetLineList)) {
-        Transport redmineTransport = redmineManager.getTransport();
-        TimeEntryManager redmineTimeEntryManager = redmineManager.getTimeEntryManager();
-        UserManager redmineUserManager = redmineManager.getUserManager();
-
-        HashMap<String, Integer> redmineTimeEntryActivityMap = new HashMap<>();
-
-        try {
-          List<TimeEntryActivity> redmineTimeEntryActivities =
-              redmineTimeEntryManager.getTimeEntryActivities();
-
-          if (CollectionUtils.isNotEmpty(redmineTimeEntryActivities)) {
-
-            for (TimeEntryActivity redmineTimeEntryActivity : redmineTimeEntryActivities) {
-              redmineTimeEntryActivityMap.put(
-                  redmineTimeEntryActivity.getName(), redmineTimeEntryActivity.getId());
-            }
-          }
-        } catch (RedmineException e) {
-          TraceBackService.trace(e, "", batch.getId());
-          incrementAnomaly();
-        }
+        setRedmineManagersAndMaps(redmineManager);
 
         for (TimesheetLine timesheetLine : timesheetLineList) {
+          errors = new Object[] {};
 
           try {
-            exportTimesheetLine(
-                timesheetLine,
-                redmineTimeEntryManager,
-                redmineUserManager,
-                redmineTransport,
-                lastBatchUpdatedOn,
-                redmineTimeEntryActivityMap);
+            exportTimesheetLine(timesheetLine);
           } catch (Exception e) {
             TraceBackService.trace(e, "", batch.getId());
             incrementAnomaly();
           }
+        }
+
+        if (CollectionUtils.isNotEmpty(errorObjList)) {
+          setErrorLog();
         }
       }
 
@@ -165,13 +135,64 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
     addComment(result);
   }
 
-  protected void exportTimesheetLine(
-      TimesheetLine timesheetLine,
-      TimeEntryManager redmineTimeEntryManager,
-      UserManager redmineUserManager,
-      Transport redmineTransport,
-      LocalDateTime lastBatchUpdatedOn,
-      HashMap<String, Integer> redmineTimeEntryActivityMap)
+  protected List<TimesheetLine> fetchTimesheetLineList() {
+
+    Batch lastBatch =
+        batchRepo
+            .all()
+            .filter(
+                "self.id != ?1 and self.redmineBatch.id = ?2",
+                batch.getId(),
+                batch.getRedmineBatch().getId())
+            .order("-updatedOn")
+            .fetchOne();
+
+    lastBatchEndDate =
+        lastBatch != null && lastBatch.getEndDate() != null
+            ? lastBatch.getEndDate().toLocalDateTime()
+            : null;
+
+    List<TimesheetLine> timesheetLineList =
+        lastBatchEndDate != null
+            ? (StringUtils.isNotEmpty(batch.getRedmineBatch().getFailedRedmineTimeEntriesIds())
+                ? timesheetLineRepo
+                    .all()
+                    .filter(
+                        "self.updatedOn > ?1 or self.id in (?2)",
+                        lastBatchEndDate,
+                        StringTool.getIntegerList(
+                            batch.getRedmineBatch().getFailedRedmineTimeEntriesIds()))
+                    .fetch()
+                : timesheetLineRepo.all().filter("self.updatedOn > ?1", lastBatchEndDate).fetch())
+            : timesheetLineRepo.all().fetch();
+
+    return timesheetLineList;
+  }
+
+  protected void setRedmineManagersAndMaps(RedmineManager redmineManager) {
+
+    redmineTransport = redmineManager.getTransport();
+    redmineTimeEntryManager = redmineManager.getTimeEntryManager();
+    redmineUserManager = redmineManager.getUserManager();
+
+    try {
+      List<TimeEntryActivity> redmineTimeEntryActivities =
+          redmineTimeEntryManager.getTimeEntryActivities();
+
+      if (CollectionUtils.isNotEmpty(redmineTimeEntryActivities)) {
+
+        for (TimeEntryActivity redmineTimeEntryActivity : redmineTimeEntryActivities) {
+          redmineTimeEntryActivityMap.put(
+              redmineTimeEntryActivity.getName(), redmineTimeEntryActivity.getId());
+        }
+      }
+    } catch (RedmineException e) {
+      TraceBackService.trace(e, "", batch.getId());
+      incrementAnomaly();
+    }
+  }
+
+  protected void exportTimesheetLine(TimesheetLine timesheetLine)
       throws RedmineException, AxelorException {
 
     LOG.debug("Exporting timesheetline: " + timesheetLine.getId());
@@ -188,7 +209,7 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
 
       if (redmineTimeEntry == null) {
         redmineTimeEntry = new TimeEntry(redmineTransport);
-      } else if (lastBatchUpdatedOn != null) {
+      } else if (lastBatchEndDate != null) {
         LocalDateTime timesheetLineUpdatedOn = timesheetLine.getUpdatedOn();
         LocalDateTime redmineTimeEntryUpdatedOn =
             redmineTimeEntry
@@ -197,31 +218,23 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
                 .atZone(ZoneId.systemDefault())
                 .toLocalDateTime();
 
-        if (timesheetLineUpdatedOn.isBefore(lastBatchUpdatedOn)
-            || (redmineTimeEntryUpdatedOn.isAfter(lastBatchUpdatedOn)
+        if (timesheetLineUpdatedOn.isBefore(lastBatchEndDate)
+            || (redmineTimeEntryUpdatedOn.isAfter(lastBatchEndDate)
                 && redmineTimeEntryUpdatedOn.isAfter(timesheetLineUpdatedOn))) {
           return;
         }
       }
 
-      updateRedmineTimeEntry(
-          redmineTimeEntry,
-          timesheetLine,
-          project,
-          redmineUserManager,
-          redmineTimeEntryActivityMap);
+      updateRedmineTimeEntry(redmineTimeEntry, timesheetLine, project);
     } else {
+      errors = new Object[] {I18n.get("Project is not set in AOS timesheetline")};
       updateFailedTimesheetLinesIds(timesheetLine.getId());
     }
   }
 
   @Transactional
   protected void updateRedmineTimeEntry(
-      TimeEntry redmineTimeEntry,
-      TimesheetLine timesheetLine,
-      Project project,
-      UserManager redmineUserManager,
-      HashMap<String, Integer> redmineTimeEntryActivityMap)
+      TimeEntry redmineTimeEntry, TimesheetLine timesheetLine, Project project)
       throws AxelorException, RedmineException {
 
     String address = null;
@@ -236,6 +249,7 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
     }
 
     if (StringUtils.isEmpty(address)) {
+      errors = new Object[] {I18n.get("Timesheetline user email address not set in AOS")};
       updateFailedTimesheetLinesIds(timesheetLine.getId());
       return;
     }
@@ -244,7 +258,13 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
 
       if (redmineUserEmailMap.get(address) != null) {
         redmineTimeEntry.setUserId(redmineUserEmailMap.get(address));
+        redmineTransport.setOnBehalfOfUser(redmineUserLoginMap.get(address));
       } else {
+        errors =
+            new Object[] {
+              I18n.get(
+                  "Redmine user not found with similar email address as AOS timesheetline user")
+            };
         updateFailedTimesheetLinesIds(timesheetLine.getId());
         return;
       }
@@ -255,11 +275,18 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
           redmineUserManager.getUsers(filterParam).getResults();
 
       if (CollectionUtils.isNotEmpty(redmineUsers)) {
-        Integer redmineUserId = redmineUsers.get(0).getId();
-        redmineTimeEntry.setUserId(redmineUserId);
-        redmineUserEmailMap.put(address, redmineUserId);
+        com.taskadapter.redmineapi.bean.User redmineUser = redmineUsers.get(0);
+        redmineTimeEntry.setUserId(redmineUser.getId());
+        redmineTransport.setOnBehalfOfUser(redmineUser.getLogin());
+        redmineUserEmailMap.put(address, redmineUser.getId());
+        redmineUserLoginMap.put(address, redmineUser.getLogin());
       } else {
         redmineUserEmailMap.put(address, null);
+        errors =
+            new Object[] {
+              I18n.get(
+                  "Redmine user not found with similar email address as AOS timesheetline user")
+            };
         updateFailedTimesheetLinesIds(timesheetLine.getId());
         return;
       }
@@ -270,6 +297,7 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
     if (projectRedmineId != null && projectRedmineId != 0) {
       redmineTimeEntry.setProjectId(projectRedmineId);
     } else {
+      errors = new Object[] {I18n.get("Redmine project not found for AOS timesheetline project")};
       updateFailedTimesheetLinesIds(timesheetLine.getId());
       return;
     }
@@ -281,6 +309,7 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
       if (teamTask.getRedmineId() != null && teamTask.getRedmineId() != 0) {
         redmineTimeEntry.setIssueId(teamTask.getRedmineId());
       } else {
+        errors = new Object[] {I18n.get("Redmine issue not found for AOS timesheetline task")};
         updateFailedTimesheetLinesIds(timesheetLine.getId());
         return;
       }
@@ -290,6 +319,10 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
       redmineTimeEntry.setActivityId(
           redmineTimeEntryActivityMap.get(timesheetLine.getActivityTypeSelect()));
     } else {
+      errors =
+          new Object[] {
+            I18n.get("Redmine timeentry activity not found for AOS timesheetline activity")
+          };
       updateFailedTimesheetLinesIds(timesheetLine.getId());
       return;
     }
@@ -309,15 +342,6 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
 
     success++;
     incrementDone();
-  }
-
-  protected void updateFailedTimesheetLinesIds(Long timesheetLineId) {
-
-    failedTimesheetLinesIds =
-        StringUtils.isEmpty(failedTimesheetLinesIds)
-            ? String.valueOf(timesheetLineId)
-            : failedTimesheetLinesIds + "," + timesheetLineId;
-    fail++;
   }
 
   protected EmailAddress getEmailAddress(User user) throws AxelorException {
@@ -347,5 +371,32 @@ public class BatchRedmineExportTimesheetline extends AbstractBatch {
     }
 
     return emailAddress;
+  }
+
+  protected void updateFailedTimesheetLinesIds(Long timesheetLineId) {
+
+    failedTimesheetLinesIds =
+        StringUtils.isEmpty(failedTimesheetLinesIds)
+            ? String.valueOf(timesheetLineId)
+            : failedTimesheetLinesIds + "," + timesheetLineId;
+
+    errorObjList.add(
+        ObjectArrays.concat(
+            new Object[] {
+              I18n.get(IMessage.REDMINE_IMPORT_TIMESHEET_LINE_ERROR), timesheetLineId.toString()
+            },
+            errors,
+            Object.class));
+
+    fail++;
+  }
+
+  protected void setErrorLog() {
+
+    MetaFile errorMetaFile = redmineErrorLogService.redmineErrorLogService(errorObjList);
+
+    if (errorMetaFile != null) {
+      batch.setErrorLogFile(errorMetaFile);
+    }
   }
 }

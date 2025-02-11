@@ -22,12 +22,23 @@ import com.axelor.apps.hr.db.DailyTimesheet;
 import com.axelor.apps.hr.db.TimesheetLine;
 import com.axelor.apps.hr.db.repo.DailyTimesheetRepository;
 import com.axelor.apps.hr.db.repo.TimesheetLineHRRepository;
+import com.axelor.apps.hr.service.timesheet.TimesheetLineComputeNameService;
 import com.google.inject.Inject;
 
 public class TimesheetLineDailytsRepository extends TimesheetLineHRRepository {
 
-  @Inject protected DailyTimesheetRepository dailyTimesheetRepo;
-  @Inject protected DailyTimesheetService dailyTimesheetService;
+  protected DailyTimesheetRepository dailyTimesheetRepo;
+  protected DailyTimesheetService dailyTimesheetService;
+
+  @Inject
+  public TimesheetLineDailytsRepository(
+      TimesheetLineComputeNameService timesheetLineComputeNameService,
+      DailyTimesheetRepository dailyTimesheetRepo,
+      DailyTimesheetService dailyTimesheetService) {
+    super(timesheetLineComputeNameService);
+    this.dailyTimesheetRepo = dailyTimesheetRepo;
+    this.dailyTimesheetService = dailyTimesheetService;
+  }
 
   @Override
   public TimesheetLine save(TimesheetLine timesheetLine) {

@@ -23,31 +23,29 @@ import com.axelor.apps.hr.db.TimesheetLine;
 import com.axelor.apps.hr.db.repo.DailyTimesheetRepository;
 import com.axelor.apps.hr.db.repo.TimesheetLineHRRepository;
 import com.axelor.apps.hr.service.timesheet.TimesheetLineComputeNameService;
+import com.axelor.inject.Beans;
 import com.google.inject.Inject;
 
 public class TimesheetLineDailytsRepository extends TimesheetLineHRRepository {
 
-  protected DailyTimesheetRepository dailyTimesheetRepo;
-  protected DailyTimesheetService dailyTimesheetService;
-
   @Inject
   public TimesheetLineDailytsRepository(
-      TimesheetLineComputeNameService timesheetLineComputeNameService,
-      DailyTimesheetRepository dailyTimesheetRepo,
-      DailyTimesheetService dailyTimesheetService) {
+      TimesheetLineComputeNameService timesheetLineComputeNameService) {
     super(timesheetLineComputeNameService);
-    this.dailyTimesheetRepo = dailyTimesheetRepo;
-    this.dailyTimesheetService = dailyTimesheetService;
   }
 
   @Override
   public TimesheetLine save(TimesheetLine timesheetLine) {
 
+    DailyTimesheetService dailyTimesheetService = Beans.get(DailyTimesheetService.class);
+
     DailyTimesheet previousDailyTs = timesheetLine.getDailyTimesheet();
-    DailyTimesheet currentDailyTs = getRelatedDailyTs(timesheetLine);
+    DailyTimesheet currentDailyTs = dailyTimesheetService.getRelatedDailyTs(timesheetLine);
     timesheetLine.setDailyTimesheet(currentDailyTs);
 
     timesheetLine = super.save(timesheetLine);
+
+    DailyTimesheetRepository dailyTimesheetRepo = Beans.get(DailyTimesheetRepository.class);
 
     if (currentDailyTs != null) {
       currentDailyTs.setTimesheet(dailyTimesheetService.updateRelatedTimesheet(currentDailyTs));
@@ -72,18 +70,5 @@ public class TimesheetLineDailytsRepository extends TimesheetLineHRRepository {
             + timesheetLine.getDate()
             + " "
             + timesheetLine.getId());
-  }
-
-  protected DailyTimesheet getRelatedDailyTs(TimesheetLine timesheetLine) {
-
-    return dailyTimesheetRepo
-        .all()
-        .filter(
-            "self.dailyTimesheetEmployee = ?1 AND self.dailyTimesheetDate = ?2 AND self.timesheet = ?3",
-            timesheetLine.getEmployee(),
-            timesheetLine.getDate(),
-            timesheetLine.getTimesheet())
-        .order("-dailyTimesheetDate")
-        .fetchOne();
   }
 }

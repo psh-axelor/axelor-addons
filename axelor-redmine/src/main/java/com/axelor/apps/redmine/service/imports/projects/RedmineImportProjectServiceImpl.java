@@ -201,7 +201,7 @@ public class RedmineImportProjectServiceImpl extends RedmineCommonService
 
   protected void fillSelectionMapWithSelectionList() {
     ArrayList<Option> selectionList =
-        new ArrayList<>(MetaStore.getSelectionList("support.project.version.status.select"));
+        new ArrayList<>(MetaStore.getSelectionList("project.version.status.select"));
     ResourceBundle fr = I18n.getBundle(Locale.FRANCE);
     ResourceBundle en = I18n.getBundle(Locale.ENGLISH);
 
